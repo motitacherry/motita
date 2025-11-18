@@ -88,6 +88,173 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
         } else {
             setTimeout(preloadCriticalImages, 1000);
         }
+
+        // Script para asegurar reproducción automática del video y bloquear interacciones
+        function initIntroVideo() {
+            const video = document.getElementById('intro-video');
+            if (video) {
+                // Configuración inicial del video
+                video.muted = true;
+                video.loop = true;
+                video.playsInline = true;
+                video.setAttribute('loop', 'true');
+                video.setAttribute('autoplay', 'true');
+                video.setAttribute('muted', 'true');
+                video.setAttribute('playsinline', 'true');
+                
+                // Deshabilitar controles completamente
+                video.controls = false;
+                video.removeAttribute('controls');
+                video.setAttribute('controls', 'false');
+                video.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
+                video.disablePictureInPicture = true;
+                video.disableRemotePlayback = true;
+                
+                // Función para forzar reproducción
+                const forcePlay = () => {
+                    if (video.paused || video.ended) {
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                // Reintentar si falla
+                                setTimeout(() => {
+                                    video.play().catch(() => {});
+                                }, 100);
+                            });
+                        }
+                    }
+                };
+                
+                // Intentar reproducir inmediatamente
+                forcePlay();
+                
+                // Asegurar que el video esté reproduciéndose cuando esté listo
+                video.addEventListener('loadedmetadata', forcePlay, { once: true });
+                video.addEventListener('loadeddata', forcePlay, { once: true });
+                video.addEventListener('canplay', forcePlay, { once: true });
+                video.addEventListener('canplaythrough', forcePlay, { once: true });
+                
+                // Bloquear todos los eventos de interacción
+                const blockInteraction = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return false;
+                };
+
+                const events = ['click', 'dblclick', 'contextmenu', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'touchmove', 'keydown', 'keyup', 'selectstart', 'dragstart', 'wheel', 'scroll'];
+                events.forEach(event => {
+                    video.addEventListener(event, blockInteraction, { capture: true, passive: false });
+                });
+                
+                // Bloquear eventos de teclado específicos del video
+                video.addEventListener('keydown', (e) => {
+                    // Bloquear teclas de espacio, flechas, etc.
+                    if ([32, 37, 38, 39, 40, 70, 77].includes(e.keyCode)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, { capture: true, passive: false });
+                
+                // Prevenir pantalla completa
+                video.addEventListener('webkitbeginfullscreen', (e) => {
+                    e.preventDefault();
+                    return false;
+                }, { capture: true, passive: false });
+                
+                video.addEventListener('webkitendfullscreen', (e) => {
+                    e.preventDefault();
+                    forcePlay(); // Reanudar después de salir de pantalla completa
+                    return false;
+                }, { capture: true, passive: false });
+                
+                // Prevenir pausa - reanudar automáticamente si se pausa
+                video.addEventListener('pause', function() {
+                    // Solo reanudar si no es un loop natural
+                    if (!video.ended) {
+                        setTimeout(() => {
+                            forcePlay();
+                        }, 50);
+                    }
+                }, false);
+                
+                // Manejar cuando el video termina - asegurar loop
+                video.addEventListener('ended', function() {
+                    video.currentTime = 0;
+                    forcePlay();
+                }, false);
+                
+                // Detectar cuando está cerca del final y asegurar loop
+                video.addEventListener('timeupdate', function() {
+                    // Si está muy cerca del final (último 0.2 segundos), asegurar loop
+                    if (video.duration && video.currentTime >= video.duration - 0.2) {
+                        // Asegurar que loop esté activo
+                        if (!video.loop) {
+                            video.loop = true;
+                        }
+                    }
+                }, false);
+                
+                // Monitor periódico para asegurar que el video esté reproduciéndose
+                setInterval(() => {
+                    // Verificar que el video esté reproduciéndose
+                    if (video.paused && !video.ended) {
+                        forcePlay();
+                    }
+                    
+                    // Asegurar que loop esté activo
+                    if (!video.loop) {
+                        video.loop = true;
+                    }
+                    
+                    // Si el video terminó pero no se reinició, forzar reinicio
+                    if (video.ended) {
+                        video.currentTime = 0;
+                        forcePlay();
+                    }
+                }, 500); // Verificar cada 500ms
+                
+                // Prevenir cambios en currentTime (adelantar/regresar) - pero permitir loop
+                let lastCurrentTime = 0;
+                let allowSeek = false;
+                
+                video.addEventListener('seeking', (e) => {
+                    // Permitir si es un reset a 0 (loop) o si el cambio es muy pequeño (normal playback)
+                    const timeDiff = Math.abs(video.currentTime - lastCurrentTime);
+                    if (!allowSeek && timeDiff > 0.5 && video.currentTime !== 0) {
+                        e.preventDefault();
+                        video.currentTime = lastCurrentTime;
+                        return false;
+                    }
+                }, { capture: true, passive: false });
+                
+                video.addEventListener('seeked', (e) => {
+                    // Si es un reset a 0, permitirlo (es el loop)
+                    if (video.currentTime === 0) {
+                        lastCurrentTime = 0;
+                        allowSeek = false;
+                    } else {
+                        lastCurrentTime = video.currentTime;
+                    }
+                }, { capture: true, passive: false });
+                
+                // Actualizar lastCurrentTime periódicamente
+                setInterval(() => {
+                    if (video.currentTime > 0) {
+                        lastCurrentTime = video.currentTime;
+                    }
+                }, 200);
+            }
+        }
+
+        // Inicializar cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initIntroVideo);
+        } else {
+            initIntroVideo();
+        }
+
     </script>
     <script src="https://cdn.tailwindcss.com" defer></script>
     <!-- DNS prefetch y preconnect para recursos externos -->
@@ -104,6 +271,9 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2" as="font" type="font/woff2" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Jost:ital,wght@0,100..900;1,100..900&family=Vina+Sans&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cal+Sans:wght@400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@600&display=swap" rel="stylesheet">
 
     <!-- Preload imágenes críticas para LCP -->
     <link rel="preload" as="image" href="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp">
@@ -114,6 +284,12 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
     <style>
         body {
             font-family: 'Inter', sans-serif;
+        }
+        #intro-video-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
         }
         /* Estilos base para productos */
         .product-card.sold-out .product-content {
@@ -394,62 +570,207 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
             color: #ffffff;
         }
         
-        #logo {
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-user-drag: none;
-            -moz-user-drag: none;
+        /* Estilos para bloquear completamente la interacción con el video */
+        #intro-video-container,
+        #intro-video-container * {
+            pointer-events: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            -webkit-touch-callout: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: none !important;
+        }
+        #intro-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            z-index: -1;
+            pointer-events: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            -webkit-touch-callout: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: none !important;
+            outline: none !important;
+            -webkit-user-drag: none !important;
+            -khtml-user-drag: none !important;
+            -moz-user-drag: none !important;
+            -o-user-drag: none !important;
+        }
+        #content-overlay {
             position: relative;
-            z-index: 2;
-            pointer-events: none;
+            z-index: 1;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.78);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
         }
-        #logo-animated {
-            cursor: grab;
+        #la-nave-text {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
             user-select: none;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -webkit-user-drag: none;
-            -khtml-user-drag: none;
-            -moz-user-drag: none;
-            -o-user-drag: none;
-            pointer-events: auto;
-            will-change: transform, left, top;
-            touch-action: none;
-            z-index: 1;
+            transform-origin: center bottom;
+            /* Transición suave para el cambio de tamaño */
+            transition: font-size 0.2s ease-out;
+            will-change: font-size, clip-path, opacity;
+            /* Asegurar que no se salga de la pantalla */
+            max-width: 100vw;
+            overflow: hidden;
+            box-sizing: border-box;
         }
-        #logo-animated.dragging {
-            cursor: grabbing !important;
-            position: fixed !important;
-            z-index: 1000 !important;
-            transition: none !important;
-            transform: scale(1.15) rotate(2deg);
-            pointer-events: auto;
-            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.5));
+        #intro-video::-webkit-media-controls {
+            display: none !important;
         }
-        #logo-animated.returning {
-            transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                        top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                        transform 0.6s ease-out !important;
-            pointer-events: auto;
-            z-index: 1000 !important;
+        #intro-video::-webkit-media-controls-enclosure {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-panel {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-play-button {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-start-playback-button {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-timeline {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-current-time-display {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-time-remaining-display {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-mute-button {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-volume-slider {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-fullscreen-button {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-overlay-play-button {
+            display: none !important;
+        }
+        #intro-video::-webkit-media-controls-overlay-enclosure {
+            display: none !important;
+        }
+        /* Safari específico - ocultar todos los controles */
+        #intro-video::-webkit-media-controls-panel,
+        #intro-video::-webkit-media-controls-play-button,
+        #intro-video::-webkit-media-controls-timeline-container,
+        #intro-video::-webkit-media-controls-timeline,
+        #intro-video::-webkit-media-controls-current-time-display,
+        #intro-video::-webkit-media-controls-time-remaining-display,
+        #intro-video::-webkit-media-controls-mute-button,
+        #intro-video::-webkit-media-controls-toggle-closed-captions-button,
+        #intro-video::-webkit-media-controls-volume-slider,
+        #intro-video::-webkit-media-controls-fullscreen-button {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        /* Estilos para el texto "LA NAVE" */
+        .rubik-semibold {
+            font-family: "Rubik", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 600;
+            font-style: normal;
+        }
+        /* Responsive para el texto "LA NAVE" - solo padding y letter-spacing, el tamaño lo maneja JS */
+        @media (max-width: 768px) {
+            #la-nave-text {
+                padding: 1.5rem 0.5rem !important;
             }
-        #logo-animated.active {
-            z-index: 1000 !important;
+        }
+        @media (max-width: 480px) {
+            #la-nave-text {
+                padding: 1rem 0.5rem !important;
+                letter-spacing: 0.05em !important;
+            }
+        }
+        /* Animación para el icono de scroll */
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) translateY(-10px);
+                opacity: 0.7;
+            }
+        }
+        #scroll-indicator {
+            transition: opacity 0.3s ease;
+        }
+        /* Ocultar el icono cuando el usuario hace scroll */
+        @media (max-width: 768px) {
+            #scroll-indicator {
+                bottom: 1.5rem;
+            }
+            #scroll-indicator svg {
+                width: 48px;
+                height: 48px;
+            }
         }
     </style>
 </head>
 <body style="background-color: #0a0a0a;" class="text-gray-100">
-    <div style="background-color: #121212; width: 100%; text-align: center; padding: 8px 0; font-size: 0.875rem; font-weight: 500; color: #e5e5e5;">
+    <!-- Video de introducción -->
+    <div id="intro-video-container" style="pointer-events: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
+        <video 
+            id="intro-video" 
+            autoplay 
+            loop 
+            muted 
+            playsinline
+            controls="false"
+            controlslist="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture
+            disableRemotePlayback
+            style="pointer-events: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;"
+            oncontextmenu="return false;"
+            onselectstart="return false;"
+            ondragstart="return false;"
+            onclick="return false;"
+            ondblclick="return false;"
+        >
+            <source src="https://res.cloudinary.com/dwpsjnorl/video/upload/v1763350684/ESTE_ES_LISTO_kld4i9.mp4" type="video/mp4">
+        </video>
+        <!-- Texto "LA NAVE" superpuesto sobre el video -->
+        <div id="la-nave-text" class="rubik-semibold" style="position: fixed; top: 0; left: 0; width: 100%; font-weight: 600; color: #ffffff; text-align: center; z-index: 10; pointer-events: none; user-select: none; -webkit-user-select: none; text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); white-space: nowrap; padding: 2rem 1rem; box-sizing: border-box; letter-spacing: 0.01em; line-height: 1; max-width: 100vw; overflow: hidden;">
+            LA NAVE
+        </div>
+        <!-- Icono de scroll hacia abajo -->
+        <div id="scroll-indicator" style="position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 0; pointer-events: none; user-select: none; -webkit-user-select: none; animation: bounce 2s infinite;">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));">
+                <path d="M7 10L12 15L17 10" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+    </div>
+    <div id="content-overlay">
+    <div id="envios-gratis-bar" style="background-color: #121212; width: 100%; text-align: center; padding: 8px 0; font-size: 0.875rem; font-weight: 500; color: #e5e5e5;">
         Envios GRATIS 24 hrs • Pago solo × transferencia
     </div>
     <div class="container mx-auto max-w-2xl lg:max-w-6xl p-4 sm:p-6 lg:px-8 lg:py-6">
         <header class="flex items-center justify-center mb-4 relative" style="min-height: 8.5rem; position: relative;">
+            <img id="logo-interactivo" src="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" alt="Motita-cherry" draggable="false" style="position: absolute; left: 50%; transform: translateX(-50%) translateY(-0.5rem); z-index: 100; pointer-events: auto; max-width: 150px; height: auto; cursor: grab; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); user-select: none; -webkit-user-select: none; -webkit-user-drag: none; touch-action: none; will-change: transform;">
             <span id="productos-text" class="font-bold" style="font-family: 'Do Hyeon', sans-serif; color: #e5e5e5; position: absolute; left: 50%; transform: translateX(-50%) translateY(-1.125rem); z-index: 0; white-space: nowrap; pointer-events: none; font-size: 4.5rem; line-height: 1;">PRODUCTOS</span>
-            <div class="relative" style="position: relative; z-index: 1; flex-shrink: 0; margin-left: -3rem; margin-top: -1.125rem;">
-                <img id="logo" src="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" alt="lanave-shop-logo-min" style="height: 8.5rem; width: auto; min-width: 8.5rem; position: relative; z-index: 2; display: block;" draggable="false">
-                <img id="logo-animated" src="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" alt="Motita-cherry" style="height: 8.5rem; width: auto; min-width: 8.5rem; position: absolute; top: 0; left: 0; z-index: 2;" draggable="false">
-            </div>
         </header>
         <div id="filters-container" class="flex justify-center mb-6 lg:mb-8 z-20" style="margin-top: -0.75rem;">
             <div id="filters" class="py-0 px-1">
@@ -544,6 +865,10 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
             <div id="coming-soon-pen" style="display: none;" class="text-center">
                 <img src="https://i.ibb.co/35MZbtvJ/Sin-t-tulo-min.png" loading="lazy" alt="Sin-t-tulo-min" style="width: 80%; margin: 0 auto;">
             </div>
+        </div>
+    </div>
+        <div id="final-image-section" style="width: 100%; margin-top: 2rem;">
+            <img src="https://i.ibb.co/W4LLBK7J/layerfinal.webp" alt="layerfinal" style="width: 100%; height: auto; display: block; max-width: 100%;">
         </div>
     </div>
     <script>
@@ -944,573 +1269,6 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
             };
             quantityContainerJoint.addEventListener('mousedown', startQDragJoint);
             quantityContainerJoint.addEventListener('touchstart', startQDragJoint, { passive: false });
-            // Logo animation
-            const logo = document.getElementById('logo');
-            const logoAnimated = document.getElementById('logo-animated');
-            const originalLogoSrc = 'https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp';
-            const alternativeLogoSrc = 'https://i.ibb.co/7JZyFQWk/alternativopng.png';
-            
-            // PRECARGAR la imagen alternativa para evitar delay
-            const preloadImg = new Image();
-            preloadImg.src = alternativeLogoSrc;
-            
-            let isDraggingLogo = false;
-            let logoStartX, logoStartY;
-            let originalLogoRect = null;
-            
-            // Variables para tracking de velocidad (física mejorada)
-            let lastMouseX = 0;
-            let lastMouseY = 0;
-            let lastMoveTime = 0;
-            let velocityX = 0;
-            let velocityY = 0;
-            let velocitySamples = []; // Array para promediar velocidad y suavizar
-            const maxSamples = 5;
-            let floatAnimationId = null;
-            let floatStartTime = null;
-            let returnAnimationId = null;
-            let returnTimeoutId = null;
-            let fadeAnimationId = null;
-            let cleanupTimeoutId = null;
-            let isReturningLogo = false;
-            let initialEffectTimeoutId = null;
-            let isInitialEffect = false;
-
-            // Prevenir selección y arrastre nativo en ambas imágenes
-            [logo, logoAnimated].forEach(img => {
-                img.addEventListener('dragstart', (e) => {
-                    e.preventDefault();
-                    return false;
-                });
-                img.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    return false;
-                });
-            });
-
-            // Función de animación de flotación en forma de infinito mientras se sostiene
-            const animateFloat = () => {
-                if (!isDraggingLogo && !isInitialEffect) return;
-
-                const elapsed = (Date.now() - floatStartTime) / 1000; // segundos
-
-                // Frecuencias suaves para movimiento de infinito
-                const t1 = elapsed * Math.PI * 0.8;   // Onda principal suave
-                const t2 = elapsed * Math.PI * 1.4;   // Onda secundaria
-                const t3 = elapsed * Math.PI * 2.2;   // Onda terciaria
-                const t4 = elapsed * Math.PI * 0.5;   // Onda base lenta
-
-                // Movimiento de infinito horizontal dominante
-                const infinityX = Math.sin(t1 * 2) * 6;    // Horizontal principal
-                const infinityY = Math.sin(t1) * Math.cos(t1) * 2.5;  // Vertical menor
-
-                // Movimiento adicional de flotación sutil
-                const floatY =
-                    Math.sin(t2) * -1.5 +            // Onda vertical sutil
-                    Math.cos(t3) * -0.8 +            // Micro movimiento
-                    Math.sin(t4) * -1.2;             // Base pequeña
-
-                // Total de movimiento
-                const offsetX = infinityX;
-                const offsetY = infinityY + floatY;
-
-                // Variación de escala sutil
-                const scale =
-                    1.15 +
-                    Math.sin(t1) * 0.02 +          // Variación mínima
-                    Math.cos(t2 * 0.6) * 0.015 +   // Micro variación
-                    Math.sin(t3 * 0.4) * 0.01;     // Ultra sutil
-
-                // Rotación suave
-                const rotate =
-                    Math.sin(t1 * 0.8) * 2.2 +     // Rotación principal suave
-                    Math.cos(t2 * 0.5) * 1.5 +     // Rotación secundaria
-                    Math.sin(t4 * 0.9) * 1.0;      // Rotación base
-
-                logoAnimated.style.transform = `scale(${scale}) rotate(${rotate}deg) translate(${offsetX}px, ${offsetY}px)`;
-
-                floatAnimationId = requestAnimationFrame(animateFloat);
-            };
-
-            // Función para iniciar el drag del logo animado
-            const startLogoDrag = (e) => {
-                // Prevenir si ya está en proceso de drag
-                if (isDraggingLogo) return;
-                
-                // Cancelar efecto inicial si está activo
-                if (initialEffectTimeoutId) {
-                    clearTimeout(initialEffectTimeoutId);
-                    initialEffectTimeoutId = null;
-                }
-                if (isInitialEffect) {
-                    isInitialEffect = false;
-                }
-                
-                // Cancelar cualquier retorno, fade o limpiezas pendientes
-                if (returnTimeoutId) {
-                    clearTimeout(returnTimeoutId);
-                    returnTimeoutId = null;
-                }
-                if (returnAnimationId) {
-                    cancelAnimationFrame(returnAnimationId);
-                    returnAnimationId = null;
-                }
-                if (fadeAnimationId) {
-                    cancelAnimationFrame(fadeAnimationId);
-                    fadeAnimationId = null;
-                }
-                if (cleanupTimeoutId) {
-                    clearTimeout(cleanupTimeoutId);
-                    cleanupTimeoutId = null;
-                }
-                isReturningLogo = false;
-
-                // Limpiar estado visual previo
-                logoAnimated.classList.remove('returning');
-                logoAnimated.style.opacity = '1';
-
-                // Prevenir comportamiento por defecto inmediatamente
-                e.preventDefault();
-                e.stopPropagation();
-
-                const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
-                const clientY = (e.type === 'touchstart' ? e.touches[0].clientY : e.clientY);
-                
-                // Forzar reflow para aplicar limpieza
-                void logoAnimated.offsetWidth;
-                
-                // Guardar posición original ACTUAL (no la antigua)
-                originalLogoRect = logoAnimated.getBoundingClientRect();
-                
-                // Calcular offset del mouse/touch relativo al logo
-                logoStartX = clientX - originalLogoRect.left;
-                logoStartY = clientY - originalLogoRect.top;
-
-                // Inicializar tracking de velocidad
-                lastMouseX = clientX;
-                lastMouseY = clientY;
-                lastMoveTime = Date.now();
-                velocityX = 0;
-                velocityY = 0;
-                velocitySamples = []; // Limpiar muestras previas
-
-                // INICIAR DRAG INMEDIATAMENTE sin umbral
-                isDraggingLogo = true;
-                logoAnimated.classList.add('dragging');
-
-                // Convertir a posición fija inmediatamente
-                logoAnimated.style.position = 'fixed';
-                logoAnimated.style.left = `${originalLogoRect.left}px`;
-                logoAnimated.style.top = `${originalLogoRect.top}px`;
-                logoAnimated.style.margin = '0';
-                logoAnimated.style.zIndex = '1000';
-
-                // Iniciar animación de flotación en forma de infinito
-                floatStartTime = Date.now();
-                floatAnimationId = requestAnimationFrame(animateFloat);
-
-                // CAMBIAR EL LOGO ESTÁTICO INMEDIATAMENTE SIN FADE (con imagen precargada)
-                logo.src = alternativeLogoSrc;
-
-                // Agregar listeners temporales
-                document.addEventListener('mousemove', onLogoDrag);
-                document.addEventListener('touchmove', onLogoDrag, { passive: false });
-                document.addEventListener('mouseup', endLogoDrag);
-                document.addEventListener('touchend', endLogoDrag);
-            };
-
-            // Función para manejar el movimiento del drag (OPTIMIZADA)
-            const onLogoDrag = (e) => {
-                if (!isDraggingLogo) return;
-
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
-                const clientY = (e.type === 'touchmove' ? e.touches[0].clientY : e.clientY);
-                const currentTime = Date.now();
-
-                // Calcular velocidad para física de inercia (MEJORADA con promedio)
-                const deltaTime = currentTime - lastMoveTime;
-                if (deltaTime > 0 && deltaTime < 100) { // Ignorar deltas muy grandes
-                    const currentVelX = (clientX - lastMouseX) / deltaTime;
-                    const currentVelY = (clientY - lastMouseY) / deltaTime;
-                    
-                    // Guardar muestra de velocidad
-                    velocitySamples.push({ x: currentVelX, y: currentVelY });
-                    
-                    // Mantener solo las últimas muestras
-                    if (velocitySamples.length > maxSamples) {
-                        velocitySamples.shift();
-                    }
-                    
-                    // Calcular velocidad promedio para suavizar
-                    velocityX = velocitySamples.reduce((sum, v) => sum + v.x, 0) / velocitySamples.length;
-                    velocityY = velocitySamples.reduce((sum, v) => sum + v.y, 0) / velocitySamples.length;
-                }
-
-                lastMouseX = clientX;
-                lastMouseY = clientY;
-                lastMoveTime = currentTime;
-
-                const currentX = clientX - logoStartX;
-                const currentY = clientY - logoStartY;
-
-                // Movimiento directo sin requestAnimationFrame para máxima responsividad
-                logoAnimated.style.left = `${currentX}px`;
-                logoAnimated.style.top = `${currentY}px`;
-            };
-
-            // Función para terminar el drag del logo animado
-            const endLogoDrag = (e) => {
-                if (!isDraggingLogo) return;
-
-                // Remover listeners
-                document.removeEventListener('mousemove', onLogoDrag);
-                document.removeEventListener('touchmove', onLogoDrag);
-                document.removeEventListener('mouseup', endLogoDrag);
-                document.removeEventListener('touchend', endLogoDrag);
-
-                // Detener animación de flotación
-                if (floatAnimationId) {
-                    cancelAnimationFrame(floatAnimationId);
-                    floatAnimationId = null;
-                }
-
-                // Remover el estado de dragging
-                logoAnimated.classList.remove('dragging');
-                isDraggingLogo = false;
-
-                // Obtener posición actual
-                const currentLeft = parseFloat(logoAnimated.style.left);
-                const currentTop = parseFloat(logoAnimated.style.top);
-                
-                // Calcular distancia de inercia basada en velocidad (FÍSICA OPTIMIZADA)
-                const inertiaMultiplier = 180;
-                const maxInertia = 350;
-                const minVelocity = 0.1;
-                
-                let inertiaX = velocityX * inertiaMultiplier;
-                let inertiaY = velocityY * inertiaMultiplier;
-                
-                // Calcular magnitud de velocidad
-                const velocityMagnitude = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
-                
-                // Si la velocidad es muy baja, no aplicar inercia
-                if (velocityMagnitude < minVelocity) {
-                    inertiaX = 0;
-                    inertiaY = 0;
-                }
-                
-                // Limitar la inercia máxima
-                const inertiaMagnitude = Math.sqrt(inertiaX * inertiaX + inertiaY * inertiaY);
-                if (inertiaMagnitude > maxInertia) {
-                    const scale = maxInertia / inertiaMagnitude;
-                    inertiaX *= scale;
-                    inertiaY *= scale;
-                }
-                
-                // Posición final después de la inercia
-                const inertiaLeft = currentLeft + inertiaX;
-                const inertiaTop = currentTop + inertiaY;
-
-                // LIMPIAR todas las transiciones antes de aplicar nueva
-                logoAnimated.style.transition = 'none';
-                
-                // Forzar reflow para asegurar que se aplique
-                void logoAnimated.offsetWidth;
-                
-                // Aplicar transición suave para inercia
-                logoAnimated.style.transition = 'left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), top 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.4s ease-out';
-                logoAnimated.style.left = `${inertiaLeft}px`;
-                logoAnimated.style.top = `${inertiaTop}px`;
-                logoAnimated.style.transform = 'scale(1) rotate(0deg)';
-                
-                // ANIMACIÓN MANUAL ULTRA SUAVE DE 4 SEGUNDOS
-                returnTimeoutId = setTimeout(() => {
-                    returnTimeoutId = null;
-
-                    // ANIMACIÓN MANUAL DE RETORNO ULTRA SUAVE
-                    const returnStartTime = Date.now();
-                    const returnDuration = 4000; // 4 segundos como pidió
-                    const startX = parseFloat(logoAnimated.style.left);
-                    const startY = parseFloat(logoAnimated.style.top);
-                    const homeRect = logo.getBoundingClientRect();
-                    const endX = homeRect.left;
-                    const endY = homeRect.top;
-
-                    isReturningLogo = true;
-                    logoAnimated.classList.add('returning');
-
-                    const animateReturn = () => {
-                        if (!isReturningLogo) return;
-
-                        const elapsed = Date.now() - returnStartTime;
-                        const rawProgress = Math.min(elapsed / returnDuration, 1);
-
-                        // Curva de easing suave: ease-out-quad
-                        const easedProgress = rawProgress * rawProgress * (3 - 2 * rawProgress);
-
-                        const currentX = startX + (endX - startX) * easedProgress;
-                        const currentY = startY + (endY - startY) * easedProgress;
-
-                        // Aplicar transformación suave sin transiciones CSS
-                        logoAnimated.style.transition = 'none';
-                        logoAnimated.style.left = `${currentX}px`;
-                        logoAnimated.style.top = `${currentY}px`;
-
-                        if (rawProgress < 1) {
-                            returnAnimationId = requestAnimationFrame(animateReturn);
-                        } else {
-                            isReturningLogo = false;
-                            returnAnimationId = null;
-
-                            // ANIMACIÓN COMPLETADA - PROCEDER CON FADE MANUAL
-                            logoAnimated.classList.remove('returning');
-
-                            // MANTENER z-index alto durante el fade
-                            logoAnimated.style.zIndex = '1000';
-
-                            // Cambiar logo estático al original
-                            logo.src = originalLogoSrc;
-
-                            // FADE OUT MANUAL PARA EVITAR CONFLICTOS CSS
-                            const fadeStartTime = Date.now();
-                            const fadeDuration = 350;
-
-                            const animateFade = () => {
-                                const fadeElapsed = Date.now() - fadeStartTime;
-                                const fadeProgress = Math.min(fadeElapsed / fadeDuration, 1);
-                                const opacity = 1 - (fadeProgress * fadeProgress); // ease-out-quad
-
-                                logoAnimated.style.opacity = opacity;
-
-                                if (fadeProgress < 1) {
-                                    fadeAnimationId = requestAnimationFrame(animateFade);
-                                } else {
-                                    fadeAnimationId = null;
-
-                                    // FADE COMPLETADO - LIMPIEZA FINAL
-                                    logoAnimated.style.opacity = '0';
-
-                                    cleanupTimeoutId = setTimeout(() => {
-                                        cleanupTimeoutId = null;
-
-                                        // Limpieza completa y definitiva - volver a posición absoluta original dentro del contenedor
-                                        logoAnimated.classList.remove('returning', 'dragging', 'active');
-                                        logoAnimated.style.position = 'absolute';
-                                        logoAnimated.style.left = '0';
-                                        logoAnimated.style.top = '0';
-                                        logoAnimated.style.transform = '';
-                                        logoAnimated.style.margin = '';
-                                        logoAnimated.style.transition = '';
-                                        logoAnimated.style.zIndex = '2';
-                                        logoAnimated.style.opacity = '1';
-
-                                        isDraggingLogo = false;
-                                        isReturningLogo = false;
-
-                                        // Forzar reflow final
-                                        void logoAnimated.offsetWidth;
-                                    }, 150);
-                                }
-                            };
-
-                            fadeAnimationId = requestAnimationFrame(animateFade);
-                        }
-                    };
-
-                    returnAnimationId = requestAnimationFrame(animateReturn);
-                }, 450); // Pausa moderada para apreciar inercia
-            };
-
-            // Event listeners para el drag del logo animado - EN EL LOGO ANIMADO DIRECTAMENTE
-            logoAnimated.addEventListener('mousedown', startLogoDrag, { passive: false });
-            logoAnimated.addEventListener('touchstart', startLogoDrag, { passive: false });
-
-            // Función para el efecto visual inicial al cargar la página
-            const playInitialLogoEffect = () => {
-                // Solo ejecutar si no hay ningún drag activo
-                if (isDraggingLogo || isReturningLogo) return;
-
-                // Marcar que el efecto inicial está activo
-                isInitialEffect = true;
-
-                // Obtener posición exacta del logo estático usando getBoundingClientRect
-                const logoRect = logo.getBoundingClientRect();
-
-                // Preparar el logo animado ANTES de cambiar el logo estático
-                logoAnimated.classList.add('active');
-                logoAnimated.style.position = 'fixed'; // Usar fixed para posición exacta desde el inicio
-                logoAnimated.style.zIndex = '1000';
-                logoAnimated.style.opacity = '0'; // Empezar invisible
-                logoAnimated.style.left = `${logoRect.left}px`;
-                logoAnimated.style.top = `${logoRect.top}px`;
-                logoAnimated.style.margin = '0';
-                logoAnimated.style.transform = 'scale(1) rotate(0deg)';
-
-                // Iniciar tiempo de flotación INMEDIATAMENTE
-                floatStartTime = Date.now();
-                
-                // Activar animación de flotación DESDE EL INICIO
-                animateFloat();
-
-                // Fade in casi instantáneo - EN PARALELO con la flotación
-                const fadeInStartTime = Date.now();
-                const fadeInDuration = 200; // 0.2 segundos para fade in rápido
-
-                const animateFadeIn = () => {
-                    const fadeInElapsed = Date.now() - fadeInStartTime;
-                    const fadeInProgress = Math.min(fadeInElapsed / fadeInDuration, 1);
-                    // Curva ease-out para fade in rápido
-                    const opacity = 1 - Math.pow(1 - fadeInProgress, 2);
-
-                    logoAnimated.style.opacity = opacity;
-
-                    // Cambiar el logo estático INMEDIATAMENTE (a los 20ms)
-                    if (fadeInProgress >= 0.1 && logo.src !== alternativeLogoSrc) {
-                        logo.src = alternativeLogoSrc;
-                    }
-
-                    if (fadeInProgress < 1) {
-                        requestAnimationFrame(animateFadeIn);
-                    } else {
-                        // Fade in completo
-                        logoAnimated.style.opacity = '1';
-                        
-                        // Asegurar que el logo estático esté cambiado
-                        logo.src = alternativeLogoSrc;
-                    }
-                };
-
-                requestAnimationFrame(animateFadeIn);
-
-                // Después de 3 segundos, iniciar desaceleración (4.5s total - 1.5s desaceleración)
-                initialEffectTimeoutId = setTimeout(() => {
-                    initialEffectTimeoutId = null;
-                    isInitialEffect = false;
-                    
-                    // Detener animación de flotación
-                    if (floatAnimationId) {
-                        cancelAnimationFrame(floatAnimationId);
-                        floatAnimationId = null;
-                    }
-
-                    // Limpiar estado visual
-                    logoAnimated.classList.remove('dragging');
-
-                    // Fase 1: Desaceleración y regreso a tamaño original (1.5 segundos)
-                    const slowdownStartTime = Date.now();
-                    const slowdownDuration = 1500; // 1.5 segundos para desacelerar
-
-                    const animateSlowdown = () => {
-                        const slowdownElapsed = Date.now() - slowdownStartTime;
-                        const slowdownProgress = Math.min(slowdownElapsed / slowdownDuration, 1);
-                        // Curva ease-out-cubic para desaceleración suave
-                        const easedProgress = 1 - Math.pow(1 - slowdownProgress, 3);
-
-                        // Obtener la transformación actual y reducir movimiento gradualmente
-                        const elapsed = (Date.now() - floatStartTime) / 1000;
-                        const t1 = elapsed * Math.PI * 0.8;
-                        const t2 = elapsed * Math.PI * 1.4;
-                        const t3 = elapsed * Math.PI * 2.2;
-                        const t4 = elapsed * Math.PI * 0.5;
-
-                        // Reducir movimiento gradualmente a 0
-                        const dampening = 1 - easedProgress;
-                        const infinityX = Math.sin(t1 * 2) * 6 * dampening;
-                        const infinityY = Math.sin(t1) * Math.cos(t1) * 2.5 * dampening;
-                        const floatY = (Math.sin(t2) * -1.5 + Math.cos(t3) * -0.8 + Math.sin(t4) * -1.2) * dampening;
-                        const offsetX = infinityX;
-                        const offsetY = infinityY + floatY;
-
-                        // Reducir escala gradualmente de 1.15 a 1.0
-                        const currentScale = 1.15 + (Math.sin(t1) * 0.02 + Math.cos(t2 * 0.6) * 0.015 + Math.sin(t3 * 0.4) * 0.01) * dampening;
-                        const targetScale = 1.0;
-                        const scale = currentScale + (targetScale - currentScale) * easedProgress;
-
-                        // Reducir rotación gradualmente a 0
-                        const rotate = (Math.sin(t1 * 0.8) * 2.2 + Math.cos(t2 * 0.5) * 1.5 + Math.sin(t4 * 0.9) * 1.0) * dampening;
-
-                        logoAnimated.style.transform = `scale(${scale}) rotate(${rotate}deg) translate(${offsetX}px, ${offsetY}px)`;
-
-                        if (slowdownProgress < 1) {
-                            requestAnimationFrame(animateSlowdown);
-                        } else {
-                            // Asegurar que esté en tamaño original y sin movimiento
-                            logoAnimated.style.transform = 'scale(1) rotate(0deg) translate(0px, 0px)';
-
-                            // Fase 2: Fade out ultra suave después de la desaceleración
-                            // Cambiar el logo estático ANTES del fade out para que esté visible durante el fade
-                            logo.src = originalLogoSrc;
-                            
-                            const fadeStartTime = Date.now();
-                            const fadeDuration = 1000; // 1 segundo para fade out ultra suave
-
-                            const animateFade = () => {
-                                const fadeElapsed = Date.now() - fadeStartTime;
-                                const fadeProgress = Math.min(fadeElapsed / fadeDuration, 1);
-                                // Curva ease-in-cubic para fade out ultra suave
-                                const easedProgress = fadeProgress * fadeProgress * fadeProgress;
-                                
-                                // Fade out del logo animado
-                                const animatedOpacity = 1 - easedProgress;
-                                logoAnimated.style.opacity = animatedOpacity;
-
-                                if (fadeProgress < 1) {
-                                    fadeAnimationId = requestAnimationFrame(animateFade);
-                                } else {
-                                    fadeAnimationId = null;
-
-                                    // Asegurar que el logo estático esté completamente visible y revertido
-                                    logo.src = originalLogoSrc;
-
-                                    // Limpieza completa - volver a posición absoluta original dentro del contenedor
-                                    logoAnimated.classList.remove('returning', 'dragging', 'active');
-                                    logoAnimated.style.position = 'absolute';
-                                    logoAnimated.style.left = '0';
-                                    logoAnimated.style.top = '0';
-                                    logoAnimated.style.transform = '';
-                                    logoAnimated.style.margin = '';
-                                    logoAnimated.style.transition = '';
-                                    logoAnimated.style.zIndex = '2';
-                                    logoAnimated.style.opacity = '1';
-
-                                    // Forzar reflow final
-                                    void logoAnimated.offsetWidth;
-                                }
-                            };
-
-                            fadeAnimationId = requestAnimationFrame(animateFade);
-                        }
-                    };
-
-                    requestAnimationFrame(animateSlowdown);
-                }, 3000); // 3 segundos de flotación activa (4.5s total - 1.5s desaceleración)
-            };
-
-            // Activar efecto visual inicial inmediatamente al cargar la página
-            playInitialLogoEffect();
-
-            // Event listener para resize - actualizar posición del logo animado
-            let resizeTimeout;
-            window.addEventListener('resize', () => {
-                // Si el logo está en efecto inicial o siendo arrastrado, actualizar su posición
-                if (isInitialEffect || isDraggingLogo) {
-                    clearTimeout(resizeTimeout);
-                    resizeTimeout = setTimeout(() => {
-                        // Obtener nueva posición del logo estático
-                        const logoRect = logo.getBoundingClientRect();
-                        
-                        // Si está en posición fixed (durante drag o efecto inicial)
-                        if (logoAnimated.style.position === 'fixed') {
-                            // Actualizar la posición para que siga al logo estático
-                            logoAnimated.style.left = `${logoRect.left}px`;
-                            logoAnimated.style.top = `${logoRect.top}px`;
-                        }
-                    }, 10); // Pequeño debounce para evitar demasiadas actualizaciones
-                }
-            });
 
             // ============================================
             // SISTEMA WEBGL LIQUID GLASS PARA PÍLDORAS
@@ -1734,13 +1492,6 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
                     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
                 }
                 
-                createShader(gl, type, source) {
-                    const shader = gl.createShader(type);
-                    gl.shaderSource(shader, source);
-                    gl.compileShader(shader);
-                    return shader;
-                }
-                
                 setupCanvas() {
                     if (!this.pillElement || !this.canvas) return;
                     const rect = this.pillElement.getBoundingClientRect();
@@ -1752,8 +1503,14 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
                     
                     if (this.gl) {
                         this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-                        this.updateTexture();
                     }
+                }
+                
+                createShader(gl, type, source) {
+                    const shader = gl.createShader(type);
+                    gl.shaderSource(shader, source);
+                    gl.compileShader(shader);
+                    return shader;
                 }
                 
                 updateTexture() {
@@ -1926,6 +1683,578 @@ RESULTADO: Carga inicial ~40-60% más rápida en dispositivos nuevos
                 }, 50);
             };
             
+        });
+        
+        // ============================================
+        // LOGO INTERACTIVO - ARRASTRAR Y REBOTAR
+        // ============================================
+        function initLogoDrag() {
+            const logo = document.getElementById('logo-interactivo');
+            if (!logo) {
+                setTimeout(initLogoDrag, 100);
+                return;
+            }
+            
+            let dragging = false;
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let currentY = 0;
+            let velocityX = 0;
+            let velocityY = 0;
+            let lastX = 0;
+            let lastY = 0;
+            let lastTime = 0;
+            let animationId = null;
+            
+            // Constantes de física
+            const FRICTION = 0.94; // Fricción (desaceleración) - aumentada para menos recorrido
+            const GRAVITY = 0.022; // Gravedad hacia la posición original - aumentada para regreso más rápido
+            const MAX_VELOCITY = 30; // Velocidad máxima - reducida para menos recorrido
+            const RETURN_SPEED = 0.012; // Velocidad de regreso a posición original - solo afecta fase final
+            const VELOCITY_MULTIPLIER = 1.3; // Multiplicador de velocidad al soltar - reducido para menos recorrido
+            
+            // Prevenir arrastre nativo
+            logo.setAttribute('draggable', 'false');
+            logo.ondragstart = () => false;
+            logo.onselectstart = () => false;
+            logo.oncontextmenu = () => false;
+            
+            // Obtener coordenadas del evento
+            function getCoords(e) {
+                if (e.touches && e.touches[0]) {
+                    return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+                return { x: e.clientX, y: e.clientY };
+            }
+            
+            // Obtener posición actual del logo
+            function getCurrentPosition() {
+                const header = logo.parentElement;
+                const headerRect = header.getBoundingClientRect();
+                const rect = logo.getBoundingClientRect();
+                const headerCenterX = headerRect.left + headerRect.width / 2;
+                const headerCenterY = headerRect.top + headerRect.height / 2;
+                
+                return {
+                    x: rect.left + rect.width / 2 - headerCenterX,
+                    y: rect.top + rect.height / 2 - headerCenterY
+                };
+            }
+            
+            // Aplicar transformación
+            function applyTransform(x, y) {
+                logo.style.transform = `translateX(calc(-50% + ${x}px)) translateY(calc(-0.5rem + ${y}px))`;
+            }
+            
+            // Animación de física
+            function animate() {
+                // Calcular distancia desde el origen
+                const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+                
+                // Aplicar fricción
+                velocityX *= FRICTION;
+                velocityY *= FRICTION;
+                
+                // Aplicar amortiguación adicional cuando está cerca del origen para evitar rebotes
+                if (distance < 12) {
+                    // Amortiguación más agresiva cuando está más cerca para eliminar rebote gravitacional
+                    const dampingFactor = 0.80 + (distance / 12) * 0.12; // Más amortiguación cuando está más cerca
+                    velocityX *= dampingFactor;
+                    velocityY *= dampingFactor;
+                }
+                
+                // Aplicar gravedad hacia la posición original (0, 0)
+                // Reducir gravedad cuando está cerca para evitar rebotes gravitacionales
+                let effectiveGravity = GRAVITY;
+                if (distance < 20) {
+                    // Gravedad cuadrática suave que se reduce mucho cuando está cerca
+                    const factor = Math.pow(distance / 20, 1.5);
+                    effectiveGravity = GRAVITY * factor;
+                }
+                
+                // Solo aplicar gravedad si se está moviendo hacia el origen o está casi quieto
+                // Esto previene rebote gravitacional
+                const directionToOriginX = -currentX;
+                const directionToOriginY = -currentY;
+                const dotProduct = velocityX * directionToOriginX + velocityY * directionToOriginY;
+                
+                // Si se está moviendo hacia el origen o está casi quieto, aplicar gravedad
+                if (dotProduct >= 0 || distance < 8) {
+                    const gravityX = directionToOriginX * effectiveGravity;
+                    const gravityY = directionToOriginY * effectiveGravity;
+                    
+                    velocityX += gravityX;
+                    velocityY += gravityY;
+                }
+                
+                // Limitar velocidad máxima
+                const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
+                if (speed > MAX_VELOCITY) {
+                    velocityX = (velocityX / speed) * MAX_VELOCITY;
+                    velocityY = (velocityY / speed) * MAX_VELOCITY;
+                }
+                
+                // Actualizar posición
+                currentX += velocityX;
+                currentY += velocityY;
+                
+                // Si está muy cerca del origen y la velocidad es baja, detener completamente sin rebote
+                if (distance < 3 && speed < 0.4) {
+                    currentX = 0;
+                    currentY = 0;
+                    velocityX = 0;
+                    velocityY = 0;
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                    logo.style.transition = 'transform 0.6s ease-out';
+                    applyTransform(0, 0);
+                    return;
+                }
+                
+                // Si la velocidad es muy baja, regresar suavemente a la posición original
+                if (Math.abs(velocityX) < 0.015 && Math.abs(velocityY) < 0.015) {
+                    if (distance > 0.8) {
+                        // Regresar gradualmente con suavidad muy lenta, sin rebote
+                        currentX *= (1 - RETURN_SPEED);
+                        currentY *= (1 - RETURN_SPEED);
+                    } else {
+                        // Ya está muy cerca, detener completamente sin rebote
+                        currentX = 0;
+                        currentY = 0;
+                        velocityX = 0;
+                        velocityY = 0;
+                        cancelAnimationFrame(animationId);
+                        animationId = null;
+                        logo.style.transition = 'transform 0.6s ease-out';
+                        applyTransform(0, 0);
+                        return;
+                    }
+                }
+                
+                // Aplicar transformación
+                applyTransform(currentX, currentY);
+                
+                // Continuar animación
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            // Iniciar arrastre
+            function onStart(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                // Detener animación inicial si está corriendo
+                if (initialAnimationId) {
+                    cancelAnimationFrame(initialAnimationId);
+                    initialAnimationId = null;
+                    logo.style.pointerEvents = 'auto'; // Rehabilitar interacción
+                }
+                
+                // Detener animación física si está corriendo
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                
+                dragging = true;
+                logo.style.cursor = 'grabbing';
+                logo.style.transition = 'none';
+                
+                const coords = getCoords(e);
+                const rect = logo.getBoundingClientRect();
+                const header = logo.parentElement;
+                const headerRect = header.getBoundingClientRect();
+                
+                // Obtener posición actual
+                const pos = getCurrentPosition();
+                currentX = pos.x;
+                currentY = pos.y;
+                
+                // Resetear velocidad
+                velocityX = 0;
+                velocityY = 0;
+                lastX = coords.x;
+                lastY = coords.y;
+                lastTime = Date.now();
+                
+                // Offset del click/touch desde el centro
+                startX = coords.x - (rect.left + rect.width / 2);
+                startY = coords.y - (rect.top + rect.height / 2);
+                
+                // Agregar listeners
+                document.addEventListener('mousemove', onMove, { passive: false, capture: true });
+                document.addEventListener('touchmove', onMove, { passive: false, capture: true });
+                document.addEventListener('mouseup', onEnd, { capture: true });
+                document.addEventListener('touchend', onEnd, { capture: true });
+                // No usar mouseleave para evitar que se suelte accidentalmente
+                
+                return false;
+            }
+            
+            // Mover durante arrastre
+            function onMove(e) {
+                if (!dragging) return;
+                
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                const coords = getCoords(e);
+                const header = logo.parentElement;
+                const headerRect = header.getBoundingClientRect();
+                
+                // Calcular nueva posición del centro
+                const newCenterX = coords.x - startX;
+                const newCenterY = coords.y - startY;
+                
+                // Calcular delta desde posición original
+                const headerCenterX = headerRect.left + headerRect.width / 2;
+                const headerCenterY = headerRect.top + headerRect.height / 2;
+                
+                currentX = newCenterX - headerCenterX;
+                currentY = newCenterY - headerCenterY;
+                
+                // Calcular velocidad basada en el movimiento
+                const now = Date.now();
+                const deltaTime = Math.max(1, now - lastTime);
+                const deltaX = coords.x - lastX;
+                const deltaY = coords.y - lastY;
+                
+                // Velocidad en píxeles por milisegundo, convertida a píxeles por frame (60fps)
+                velocityX = (deltaX / deltaTime) * 16.67;
+                velocityY = (deltaY / deltaTime) * 16.67;
+                
+                lastX = coords.x;
+                lastY = coords.y;
+                lastTime = now;
+                
+                // Aplicar transform
+                applyTransform(currentX, currentY);
+                
+                return false;
+            }
+            
+            // Finalizar arrastre
+            function onEnd(e) {
+                if (!dragging) return;
+                
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                
+                dragging = false;
+                logo.style.cursor = 'grab';
+                logo.style.transition = 'none';
+                
+                // Aplicar multiplicador de velocidad para más recorrido
+                velocityX *= VELOCITY_MULTIPLIER;
+                velocityY *= VELOCITY_MULTIPLIER;
+                
+                // Remover listeners
+                document.removeEventListener('mousemove', onMove, { capture: true });
+                document.removeEventListener('touchmove', onMove, { capture: true });
+                document.removeEventListener('mouseup', onEnd, { capture: true });
+                document.removeEventListener('touchend', onEnd, { capture: true });
+                
+                // Iniciar animación de física
+                if (!animationId) {
+                    animationId = requestAnimationFrame(animate);
+                }
+                
+                return false;
+            }
+            
+            // Agregar listeners iniciales
+            logo.addEventListener('mousedown', onStart, { passive: false, capture: true });
+            logo.addEventListener('touchstart', onStart, { passive: false, capture: true });
+            
+            // ============================================
+            // ANIMACIÓN INICIAL - MOVIMIENTO EN FORMA DE INFINITO
+            // ============================================
+            let initialAnimationId = null;
+            let initialAnimationStartTime = null;
+            const INITIAL_ANIMATION_DURATION = 20000; // 20 segundos (15s infinito + 5s desaceleración)
+            const INFINITY_AMPLITUDE_X = 80; // Amplitud horizontal del infinito
+            const INFINITY_AMPLITUDE_Y = 30; // Amplitud vertical del infinito
+            const VERTICAL_AMPLITUDE = 15; // Amplitud del movimiento vertical adicional
+            
+            function startInitialAnimation() {
+                initialAnimationStartTime = Date.now();
+                logo.style.transition = 'none';
+                // Mantener interacción habilitada para poder interrumpir la animación
+                
+                function animateInfinity() {
+                    const elapsed = Date.now() - initialAnimationStartTime;
+                    const progress = elapsed / INITIAL_ANIMATION_DURATION;
+                    
+                    if (progress >= 1) {
+                        // Animación terminada, regresar a posición original de forma muy suave y elegante
+                        currentX = 0;
+                        currentY = 0;
+                        velocityX = 0;
+                        velocityY = 0;
+                        logo.style.transition = 'transform 4.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
+                        applyTransform(0, 0);
+                        logo.style.pointerEvents = 'auto'; // Rehabilitar interacción
+                        initialAnimationId = null;
+                        return;
+                    }
+                    
+                    // Desaceleración gradual en los últimos 5 segundos (progress > 0.75)
+                    let decelerationFactor = 1.0;
+                    if (progress > 0.75) {
+                        // Calcular factor de desaceleración de 1.0 a 0.0 en los últimos 5 segundos
+                        const decelerationProgress = (progress - 0.75) / 0.25; // 0.0 a 1.0 en los últimos 5 segundos
+                        // Curva suave de desaceleración (ease-out)
+                        decelerationFactor = 1 - Math.pow(decelerationProgress, 2);
+                    }
+                    
+                    // Movimiento en forma de infinito (∞)
+                    // x(t) = sin(t) para el movimiento horizontal
+                    // y(t) = sin(2*t) / 2 para crear la forma de infinito
+                    const t = progress * Math.PI * 6; // 3 ciclos completos del infinito en 15 segundos
+                    const infinityX = Math.sin(t) * INFINITY_AMPLITUDE_X;
+                    const infinityY = (Math.sin(2 * t) / 2) * INFINITY_AMPLITUDE_Y;
+                    
+                    // Movimiento vertical adicional (ligero)
+                    const verticalY = Math.sin(t * 1.5) * VERTICAL_AMPLITUDE;
+                    
+                    // Aplicar factor de desaceleración al movimiento
+                    const finalX = infinityX * decelerationFactor;
+                    const finalY = (infinityY + verticalY) * decelerationFactor;
+                    
+                    applyTransform(finalX, finalY);
+                    
+                    initialAnimationId = requestAnimationFrame(animateInfinity);
+                }
+                
+                initialAnimationId = requestAnimationFrame(animateInfinity);
+            }
+            
+            // Iniciar animación después de un pequeño delay para asegurar que el logo esté visible
+            setTimeout(() => {
+                startInitialAnimation();
+            }, 300);
+        }
+        
+        // Inicializar cuando el DOM esté listo
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLogoDrag);
+        } else {
+            initLogoDrag();
+        }
+
+        // Efecto de aplastamiento del texto "LA NAVE" cuando el content-overlay pasa por encima
+        document.addEventListener('DOMContentLoaded', () => {
+            const laNaveText = document.getElementById('la-nave-text');
+            const contentOverlay = document.getElementById('content-overlay');
+            
+            if (!laNaveText || !contentOverlay) return;
+
+            // Función para ajustar el tamaño del texto para que ocupe TODO el ancho disponible
+            // Funciona en todos los tamaños de pantalla (móvil y escritorio)
+            const adjustTextSize = () => {
+                // Obtener el ancho completo de la ventana
+                // Considerar el padding para calcular el ancho disponible real
+                const computedStyle = getComputedStyle(laNaveText);
+                const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+                const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
+                const availableWidth = window.innerWidth - paddingLeft - paddingRight;
+                
+                // Obtener el letter-spacing en em
+                const letterSpacingEm = parseFloat(computedStyle.letterSpacing) || 0;
+                
+                // Crear elemento temporal para medir con los mismos estilos exactos
+                const measureElement = document.createElement('span');
+                measureElement.style.visibility = 'hidden';
+                measureElement.style.position = 'absolute';
+                measureElement.style.top = '-9999px';
+                measureElement.style.left = '-9999px';
+                measureElement.style.whiteSpace = 'nowrap';
+                measureElement.style.fontFamily = computedStyle.fontFamily;
+                measureElement.style.fontWeight = computedStyle.fontWeight;
+                measureElement.style.fontSize = '100px'; // Tamaño base para medir
+                measureElement.textContent = 'LA NAVE';
+                document.body.appendChild(measureElement);
+                
+                // Obtener el ancho del texto con tamaño base de 100px
+                const baseWidth = measureElement.offsetWidth;
+                const baseFontSize = 100;
+                
+                // Calcular el tamaño de fuente necesario usando proporción directa
+                // Proporción: fontSize / baseFontSize = availableWidth / baseWidth
+                let fontSize = (availableWidth / baseWidth) * baseFontSize;
+                
+                // Aplicar el tamaño calculado y verificar
+                measureElement.style.fontSize = fontSize + 'px';
+                measureElement.style.letterSpacing = (fontSize * letterSpacingEm) + 'px';
+                
+                // Forzar reflow
+                void measureElement.offsetWidth;
+                
+                let actualWidth = measureElement.offsetWidth;
+                
+                // Ajustar finamente usando búsqueda binaria
+                let minFontSize = 10;
+                let maxFontSize = fontSize * 2; // Empezar con un rango razonable
+                let bestFontSize = fontSize;
+                const tolerance = 0.01;
+                
+                // Si el texto se sale, reducir el rango máximo
+                if (actualWidth > availableWidth) {
+                    maxFontSize = fontSize;
+                    minFontSize = fontSize * 0.5;
+                } else {
+                    // Si el texto cabe, podemos aumentar
+                    minFontSize = fontSize;
+                    maxFontSize = fontSize * 2;
+                }
+                
+                // Búsqueda binaria iterativa para encontrar el tamaño exacto
+                for (let i = 0; i < 200; i++) {
+                    const testFontSize = (minFontSize + maxFontSize) / 2;
+                    measureElement.style.fontSize = testFontSize + 'px';
+                    measureElement.style.letterSpacing = (testFontSize * letterSpacingEm) + 'px';
+                    
+                    // Forzar reflow
+                    void measureElement.offsetWidth;
+                    
+                    const textWidth = measureElement.offsetWidth;
+                    
+                    if (textWidth <= availableWidth) {
+                        // El texto cabe, podemos intentar un tamaño mayor
+                        bestFontSize = testFontSize;
+                        minFontSize = testFontSize;
+                    } else {
+                        // El texto se sale, necesitamos un tamaño menor
+                        maxFontSize = testFontSize;
+                    }
+                    
+                    // Si la diferencia es muy pequeña, salir
+                    if (maxFontSize - minFontSize < tolerance) {
+                        break;
+                    }
+                }
+                
+                // Aplicar el tamaño encontrado - hacer el texto más grande pero siempre dentro de la ventana
+                // Usar un margen de seguridad más conservador para asegurar que nunca se salga
+                // En móvil (<=768px) usar 92%, en tabletas (769-1024px) usar 88%, en escritorio (>1024px) usar 99%
+                const width = window.innerWidth;
+                let safetyMargin;
+                if (width <= 768) {
+                    safetyMargin = 0.92; // Móvil - más grande
+                } else if (width <= 1024) {
+                    safetyMargin = 0.88; // Tabletas
+                } else {
+                    safetyMargin = 0.99; // Escritorio - máximo tamaño para abarcar todo el ancho de la ventana
+                }
+                laNaveText.style.fontSize = (bestFontSize * safetyMargin) + 'px';
+                
+                // Asegurar que el texto nunca se salga usando max-width y overflow
+                laNaveText.style.maxWidth = '100vw';
+                laNaveText.style.overflow = 'hidden';
+                
+                // Asegurar que el texto esté perfectamente centrado y no se salga
+                // El texto ya tiene position: fixed, left: 0, width: 100% y text-align: center en el HTML
+                // Solo necesitamos asegurar que no haya transformaciones que lo desplacen
+                // El transform se maneja en el efecto de aplastamiento, así que no lo tocamos aquí
+                
+                // Limpiar
+                document.body.removeChild(measureElement);
+            };
+            
+            // Ajustar el tamaño inicial
+            adjustTextSize();
+            
+            // Ajustar el tamaño cuando cambia el tamaño de la ventana (más frecuente para suavidad)
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(adjustTextSize, 16); // ~60fps para suavidad
+            });
+
+            let ticking = false;
+
+            const handleScroll = () => {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        // Obtener posición del texto "LA NAVE" (fixed, siempre en la parte superior)
+                        const laNaveRect = laNaveText.getBoundingClientRect();
+                        const textTop = laNaveRect.top;
+                        const textBottom = laNaveRect.bottom;
+                        const textHeight = textBottom - textTop;
+                        
+                        // Obtener posición de todo el content-overlay
+                        const overlayRect = contentOverlay.getBoundingClientRect();
+                        const overlayTop = overlayRect.top; // Parte superior del overlay
+                        const overlayBottom = overlayRect.bottom; // Parte inferior del overlay
+                        
+                        // Solo aplicar efecto cuando el contenido está realmente pasando por encima del texto
+                        // El contenido pasa por encima cuando overlayTop < textBottom
+                        if (overlayTop < textBottom && overlayBottom > textTop) {
+                            // El contenido está pasando por encima del texto
+                            // Calcular cuánto del contenido está dentro del área del texto
+                            const overlapTop = Math.max(overlayTop, textTop);
+                            const overlapBottom = Math.min(overlayBottom, textBottom);
+                            const overlapHeight = Math.max(0, overlapBottom - overlapTop);
+                            
+                            // El factor de aplastamiento es proporcional a cuánto del texto está cubierto
+                            // desde abajo hacia arriba (cuando el contenido entra por la parte inferior)
+                            // Calculamos desde qué punto del texto (desde abajo) está siendo cubierto
+                            const distanceFromBottom = textBottom - overlayTop;
+                            
+                            // El aplastamiento comienza cuando el contenido toca la parte inferior del texto
+                            // y aumenta a medida que el contenido sube dentro del texto
+                            // squashFactor va de 0 (contenido apenas toca la parte inferior) a 1 (contenido cubre todo el texto)
+                            const squashFactor = Math.min(1, Math.max(0, distanceFromBottom / textHeight));
+                            
+                            // Calcular la escala: cuando squashFactor = 1, scaleY = 0 (completamente aplastado)
+                            const scaleY = 1 - squashFactor;
+                            
+                            // Opacidad: desaparece cuando está completamente aplastado
+                            // Comenzar a desaparecer cuando está 70% aplastado
+                            let opacity = 1;
+                            if (squashFactor > 0.7) {
+                                opacity = 1 - ((squashFactor - 0.7) / 0.3); // De 1 a 0 en el último 30%
+                            }
+                            
+                            // Para que SOLO se comprima desde abajo sin afectar la parte superior:
+                            // NO usamos scaleY porque comprime todo el elemento y mueve la parte superior
+                            // En su lugar, usamos clip-path para recortar desde abajo progresivamente
+                            // Esto simula el efecto de que el contenido está "aplastando" el texto desde abajo
+                            
+                            // Calcular el porcentaje a recortar desde abajo
+                            // Cuando squashFactor = 0, no recortamos nada (0%)
+                            // Cuando squashFactor = 1, recortamos todo desde abajo (100%)
+                            const clipBottom = squashFactor * 100;
+                            
+                            // Usar clip-path para recortar desde abajo
+                            // inset(top right bottom left) - recortamos desde abajo
+                            // Esto hace que el texto desaparezca desde abajo, manteniendo la parte superior fija
+                            laNaveText.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
+                            
+                            // NO usar transform para evitar que se comprima desde arriba
+                            laNaveText.style.transform = 'none';
+                            
+                            laNaveText.style.opacity = opacity;
+                        } else {
+                            // El contenido no está pasando por encima, mantener estado normal
+                            laNaveText.style.clipPath = 'inset(0 0 0% 0)';
+                            laNaveText.style.transform = 'none';
+                            laNaveText.style.opacity = '1';
+                        }
+                        
+                        ticking = false;
+                    });
+                    
+                    ticking = true;
+                }
+            };
+
+            // Escuchar eventos de scroll
+            window.addEventListener('scroll', handleScroll, { passive: true });
+            
+            // Ejecutar una vez al cargar para establecer el estado inicial
+            handleScroll();
         });
     </script>
 
