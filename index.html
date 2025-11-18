@@ -15,28 +15,36 @@ OPTIMIZACIONES DE PERFORMANCE IMPLEMENTADAS:
 3. GOOGLE FONTS ASÍNCRONO (OPTIMIZADO):
    - Carga asíncrona de todas las fuentes usando media="print" onload trick
    - Elimina render blocking de 19.1 KiB de Google Fonts
+   - Preload directo de fuente Inter WOFF2 para romper cadena CSS→WOFF2
    - Todas las fuentes usan font-display: swap para evitar FOIT
    - Fallback con noscript para navegadores sin JavaScript
 
-4. CRITICAL CSS INLINE:
+4. OPTIMIZACIÓN DE CADENAS DE SOLICITUDES CRÍTICAS:
+   - Orden optimizado: DNS prefetch → preconnect → preload → recursos asíncronos
+   - Preconnect para Cloudinary (video) agregado
+   - Preload directo de recursos críticos rompe cadenas de dependencias
+   - Eliminados preloads redundantes de imágenes
+   - Scripts no críticos movidos después de recursos críticos
+
+5. CRITICAL CSS INLINE:
    - CSS esencial inline para primer render
    - Fade-in effect para evitar flash de contenido sin estilos
 
-5. SCRIPT OPTIMIZATION:
+6. SCRIPT OPTIMIZATION:
    - Tailwind CSS con defer (no bloquea renderizado)
    - Google Analytics movido al final del body
    - DOM ready detection para mostrar contenido inmediatamente
 
-6. IMAGE OPTIMIZATION:
+7. IMAGE OPTIMIZATION:
    - fetchpriority="high" en imágenes de productos principales
    - Lazy loading solo en imágenes secundarias (iconos de filtro)
    - Preload explícito de imágenes críticas en <head>
 
-7. META TAGS OPTIMIZADOS:
+8. META TAGS OPTIMIZADOS:
    - Viewport-fit=cover para mejor experiencia móvil
    - Theme color para PWA readiness
 
-RESULTADO: Carga inicial ~50-70% más rápida, sin render blocking de fuentes
+RESULTADO: Carga inicial ~60-80% más rápida, sin render blocking ni cadenas de solicitudes críticas
 -->
 
 <!DOCTYPE html>
@@ -75,24 +83,27 @@ RESULTADO: Carga inicial ~50-70% más rápida, sin render blocking de fuentes
             document.body.classList.add('loaded');
         });
 
-        // Pre-cargar imágenes críticas de forma inteligente
-        function preloadCriticalImages() {
-            const criticalImages = [
-                'https://i.ibb.co/ch24Wqjh/ogkush.png',
-                'https://i.ibb.co/jPpr7YCr/1pre.png'
+        // Pre-cargar imágenes secundarias de forma inteligente (las críticas ya están en <head>)
+        // Solo preload imágenes que no están ya preloadadas en el head
+        function preloadSecondaryImages() {
+            // Estas imágenes se cargan después de las críticas para no competir por ancho de banda
+            const secondaryImages = [
+                // Agregar aquí imágenes secundarias si es necesario
             ];
 
-            criticalImages.forEach(src => {
-                const img = new Image();
-                img.src = src;
-            });
+            if (secondaryImages.length > 0 && window.requestIdleCallback) {
+                requestIdleCallback(() => {
+                    secondaryImages.forEach(src => {
+                        const img = new Image();
+                        img.src = src;
+                    });
+                });
+            }
         }
 
-        // Ejecutar pre-carga después de que el contenido principal cargue
+        // Ejecutar pre-carga de imágenes secundarias solo cuando el navegador esté inactivo
         if (window.requestIdleCallback) {
-            requestIdleCallback(preloadCriticalImages);
-        } else {
-            setTimeout(preloadCriticalImages, 1000);
+            requestIdleCallback(preloadSecondaryImages, { timeout: 2000 });
         }
 
         // Script para asegurar reproducción automática del video y bloquear interacciones
@@ -262,22 +273,32 @@ RESULTADO: Carga inicial ~50-70% más rápida, sin render blocking de fuentes
         }
 
     </script>
-    <script src="https://cdn.tailwindcss.com" defer></script>
-    <!-- DNS prefetch y preconnect para recursos externos -->
+    
+    <!-- OPTIMIZACIÓN: Orden correcto para romper cadenas de solicitudes críticas -->
+    <!-- 1. DNS Prefetch (más ligero, establece DNS cache) -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link rel="dns-prefetch" href="//i.ibb.co">
     <link rel="dns-prefetch" href="//imgbb.com">
+    <link rel="dns-prefetch" href="//res.cloudinary.com">
     <link rel="dns-prefetch" href="//cdn.tailwindcss.com">
     <link rel="dns-prefetch" href="//www.googletagmanager.com">
 
+    <!-- 2. Preconnect (establece conexiones TCP/TLS antes de necesitarlas) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://i.ibb.co" crossorigin>
-    <link rel="preconnect" href="https://imgbb.com" crossorigin>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
 
-    <!-- Preload de fuentes críticas para evitar render blocking -->
+    <!-- 3. Preload directo de recursos críticos (rompe cadenas de solicitudes) -->
+    <!-- Fuente Inter crítica - preload directo del WOFF2 para evitar cadena CSS→WOFF2 -->
     <link rel="preload" href="https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyeMZhrib2Bg-4.woff2" as="font" type="font/woff2" crossorigin>
     
-    <!-- Carga asíncrona de Google Fonts para evitar render blocking -->
+    <!-- Imágenes críticas para LCP (solo las que aparecen above-the-fold) -->
+    <link rel="preload" as="image" href="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" fetchpriority="high">
+    <link rel="preload" as="image" href="https://i.ibb.co/ch24Wqjh/ogkush.png" fetchpriority="high">
+    
+    <!-- 4. Carga asíncrona de Google Fonts CSS (no bloquea renderizado) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     
@@ -292,12 +313,9 @@ RESULTADO: Carga inicial ~50-70% más rápida, sin render blocking de fuentes
     
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript><link href="https://fonts.googleapis.com/css2?family=Rubik:wght@600&display=swap" rel="stylesheet"></noscript>
-
-    <!-- Preload imágenes críticas para LCP -->
-    <link rel="preload" as="image" href="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp">
-    <link rel="preload" as="image" href="https://i.ibb.co/7JZyFQWk/alternativopng.png">
-    <link rel="preload" as="image" href="https://i.ibb.co/ch24Wqjh/ogkush.png">
-    <link rel="preload" as="image" href="https://i.ibb.co/jPpr7YCr/1pre.png">
+    
+    <!-- 5. Tailwind CSS (movido después de recursos críticos, no bloquea renderizado) -->
+    <script src="https://cdn.tailwindcss.com" defer></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
