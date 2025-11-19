@@ -3,10 +3,23 @@ body {
 }
 
 #intro-video-container {
-    position: relative;
-    width: 100%;
+    position: sticky;
+    top: 0;
     height: 100vh;
+    z-index: 0;
     overflow: hidden;
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
+}
+
+/* Estilos para el grid de productos - prevenir saltos de página */
+#product-grid {
+    position: relative;
+    transition: min-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Estilos base para productos */
@@ -17,6 +30,20 @@ body {
 
 .product-card.sold-out .sold-out-overlay {
     display: flex;
+}
+
+.product-card h3 {
+    font-family: "Trebuchet MS", sans-serif;
+    text-transform: uppercase;
+    font-size: 1.125rem !important;
+    /* text-lg */
+}
+
+@media (min-width: 640px) {
+    .product-card h3 {
+        font-size: 1.25rem !important;
+        /* sm:text-xl */
+    }
 }
 
 /* Estilos para el menú Liquid Glass */
@@ -348,11 +375,11 @@ body {
 }
 
 #intro-video {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 100vh;
+    height: 100%;
     object-fit: cover;
     z-index: -1;
     pointer-events: none !important;
@@ -383,10 +410,16 @@ body {
     backdrop-filter: blur(28px);
     -webkit-backdrop-filter: blur(28px);
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    will-change: transform;
 }
 
 #la-nave-text {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -555,6 +588,11 @@ body {
     /* Height will be controlled by JS */
     height: 50px;
     will-change: height;
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 #final-image-section img {
@@ -570,7 +608,12 @@ body {
     pointer-events: none;
     user-select: none;
     -webkit-user-drag: none;
-    will-change: height;
+    will-change: height, transform;
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .final-divider {

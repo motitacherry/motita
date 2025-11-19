@@ -565,12 +565,28 @@ function initFiltersAndWebGL() {
     });
     // Función para aplicar filtro
     const applyFilter = (filter) => {
+        const productGrid = document.getElementById('product-grid');
+
+        // Capturar la altura actual del grid antes de cambiar
+        const currentHeight = productGrid.offsetHeight;
+
+        // Establecer min-height para prevenir saltos
+        productGrid.style.minHeight = currentHeight + 'px';
+
         productCards.forEach(card => {
             const category = card.getAttribute('data-category');
             card.style.display = (filter === 'all' || filter === category) ? 'block' : 'none';
         });
         const comingSoonPen = document.getElementById('coming-soon-pen');
         comingSoonPen.style.display = (filter === 'pen') ? 'block' : 'none';
+
+        // Después de un breve delay, ajustar min-height a la nueva altura natural
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                const newHeight = productGrid.scrollHeight;
+                productGrid.style.minHeight = newHeight + 'px';
+            });
+        });
     };
     // Manejar inicio de drag
     const startDrag = (e) => {
@@ -1507,25 +1523,57 @@ function initFinalImageEffect() {
     let scrollRaf = null;
     let resizeRaf = null;
 
+    // Variables de caché para optimización
+    let viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let sectionAbsoluteTop = 0;
+    let lastScrollY = -1;
+
     const updateHeight = () => {
         if (!maxHeight) return;
 
-        const rect = finalSection.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        // Optimización: Usar valores en caché y window.scrollY
+        // Evita getBoundingClientRect() en cada frame que causa reflow forzado
+        const currentScrollY = window.scrollY || window.pageYOffset;
 
-        const availableHeight = viewportHeight - rect.top;
+        // Si el scroll no ha cambiado, no hacer nada (aunque RAF ayuda, esto es doble seguridad)
+        if (currentScrollY === lastScrollY) return;
+        lastScrollY = currentScrollY;
+
+        // Calcular posición relativa visual
+        const rectTop = sectionAbsoluteTop - currentScrollY;
+
+        // Solo calcular si está cerca de ser visible o visible
+        // Un margen de seguridad de 100px
+        if (rectTop > viewportHeight + 100) return;
+
+        const availableHeight = viewportHeight - rectTop;
+
+        // Usar fastdom o simplemente escribir (el navegador optimiza si no leemos después)
         const targetHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
 
+        // Usar transform scaleY podría ser más performante que height, pero height es necesario para el layout
+        // Sin embargo, como es el último elemento, height está bien si evitamos el reflow de lectura
         finalSection.style.height = `${targetHeight}px`;
     };
 
     const updateDimensions = () => {
         if (!finalImage.naturalWidth || !finalImage.naturalHeight) return;
+
+        // Actualizar caché de dimensiones
+        viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        // Calcular posición absoluta (top relativo al documento)
+        // Necesitamos sumar el scroll actual al top relativo al viewport
+        const rect = finalSection.getBoundingClientRect();
+        sectionAbsoluteTop = rect.top + window.scrollY;
+
         const width = finalSection.clientWidth || window.innerWidth;
 
         // Calcular altura natural basada en el aspect ratio
         maxHeight = width * (finalImage.naturalHeight / finalImage.naturalWidth);
 
+        // Forzar actualización inmediata
+        lastScrollY = -1;
         updateHeight();
     };
 
@@ -1558,6 +1606,10 @@ function initFinalImageEffect() {
 
     // Ajuste inicial
     updateDimensions();
+
+    // Recalcular dimensiones periódicamente por si carga contenido dinámico arriba
+    // Esto es barato comparado con hacerlo en cada scroll
+    setInterval(updateDimensions, 2000);
 }
 
 // Initialization Logic
