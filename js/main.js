@@ -1,3 +1,19 @@
+// Precargar imágenes de preroll para cambio instantáneo
+function preloadPrerollImages() {
+    const prerollImages = [
+        'https://i.ibb.co/jPpr7YCr/1pre.png',  // 1 preroll (ya está en HTML pero incluimos por completitud)
+        'https://i.ibb.co/k6MSZg39/2pre.png',  // 2 prerolls
+        'https://i.ibb.co/TBsZ8r3c/3pre.png',  // 3 prerolls
+        'https://i.ibb.co/0Rj8KMmJ/5pre.png'   // 5 prerolls
+    ];
+
+    // Crear objetos Image para forzar la carga en caché del navegador
+    prerollImages.forEach(src => {
+        const img = new Image();
+        img.src = src;
+    });
+}
+
 // Video Optimization
 function initIntroVideo() {
     const video = document.getElementById('intro-video');
@@ -1616,6 +1632,7 @@ function initFinalImageEffect() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('loaded');
+        preloadPrerollImages(); // Precargar imágenes de preroll inmediatamente
         initIntroVideo();
 
         if (window.requestIdleCallback) {
@@ -1636,6 +1653,7 @@ if (document.readyState === 'loading') {
     });
 } else {
     document.body.classList.add('loaded');
+    preloadPrerollImages(); // Precargar imágenes de preroll inmediatamente
     initIntroVideo();
 
     if (window.requestIdleCallback) {
