@@ -62,6 +62,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
 
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -69,21 +70,39 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
     <meta name="description" content="La Nave - Tienda online de productos premium">
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <title>La Nave</title>
+    <link rel="stylesheet" href="css/tanker.css">
 
     <!-- CSS crítico inline optimizado para carga inicial rápida -->
     <style>
         /* Critical CSS - Solo lo esencial para el primer render */
-        html{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-        body{margin:0;background:#000;color:#e5e5e5;opacity:0;transition:opacity .3s ease}
-        body.loaded{opacity:1}
-        .placeholder{background:#1a1a1a;border-radius:1rem;min-height:200px}
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
+        }
+
+        body {
+            margin: 0;
+            background: #000;
+            color: #e5e5e5;
+            opacity: 0;
+            transition: opacity .3s ease
+        }
+
+        body.loaded {
+            opacity: 1
+        }
+
+        .placeholder {
+            background: #1a1a1a;
+            border-radius: 1rem;
+            min-height: 200px
+        }
     </style>
 
     <!-- Script para mostrar contenido cuando esté listo -->
     <script>
         // Mostrar contenido inmediatamente cuando el DOM esté listo
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 document.body.classList.add('loaded');
             });
         } else {
@@ -91,7 +110,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         }
 
         // Fallback para navegadores antiguos
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             document.body.classList.add('loaded');
         });
 
@@ -130,18 +149,18 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 video.setAttribute('autoplay', 'true');
                 video.setAttribute('muted', 'true');
                 video.setAttribute('playsinline', 'true');
-                
+
                 // Deshabilitar controles completamente (reforzar)
                 video.controls = false;
                 video.removeAttribute('controls');
                 video.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
                 video.disablePictureInPicture = true;
                 video.disableRemotePlayback = true;
-                
+
                 // Forzar ocultamiento de controles en Safari (reforzar)
                 video.style.setProperty('-webkit-appearance', 'none', 'important');
                 video.style.setProperty('appearance', 'none', 'important');
-                
+
                 // Función para forzar reproducción
                 const forcePlay = () => {
                     if (video.paused || video.ended) {
@@ -150,22 +169,22 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                             playPromise.catch(error => {
                                 // Reintentar si falla
                                 setTimeout(() => {
-                                    video.play().catch(() => {});
+                                    video.play().catch(() => { });
                                 }, 100);
                             });
                         }
                     }
                 };
-                
+
                 // Intentar reproducir inmediatamente
                 forcePlay();
-                
+
                 // Asegurar que el video esté reproduciéndose cuando esté listo
                 video.addEventListener('loadedmetadata', forcePlay, { once: true });
                 video.addEventListener('loadeddata', forcePlay, { once: true });
                 video.addEventListener('canplay', forcePlay, { once: true });
                 video.addEventListener('canplaythrough', forcePlay, { once: true });
-                
+
                 // Bloquear todos los eventos de interacción
                 const blockInteraction = (e) => {
                     e.preventDefault();
@@ -178,7 +197,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 events.forEach(event => {
                     video.addEventListener(event, blockInteraction, { capture: true, passive: false });
                 });
-                
+
                 // Bloquear eventos de teclado específicos del video
                 video.addEventListener('keydown', (e) => {
                     // Bloquear teclas de espacio, flechas, etc.
@@ -188,21 +207,21 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         return false;
                     }
                 }, { capture: true, passive: false });
-                
+
                 // Prevenir pantalla completa
                 video.addEventListener('webkitbeginfullscreen', (e) => {
                     e.preventDefault();
                     return false;
                 }, { capture: true, passive: false });
-                
+
                 video.addEventListener('webkitendfullscreen', (e) => {
                     e.preventDefault();
                     forcePlay(); // Reanudar después de salir de pantalla completa
                     return false;
                 }, { capture: true, passive: false });
-                
+
                 // Prevenir pausa - reanudar automáticamente si se pausa
-                video.addEventListener('pause', function() {
+                video.addEventListener('pause', function () {
                     // Solo reanudar si no es un loop natural
                     if (!video.ended) {
                         setTimeout(() => {
@@ -210,15 +229,15 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         }, 50);
                     }
                 }, false);
-                
+
                 // Manejar cuando el video termina - asegurar loop
-                video.addEventListener('ended', function() {
+                video.addEventListener('ended', function () {
                     video.currentTime = 0;
                     forcePlay();
                 }, false);
-                
+
                 // Detectar cuando está cerca del final y asegurar loop
-                video.addEventListener('timeupdate', function() {
+                video.addEventListener('timeupdate', function () {
                     // Si está muy cerca del final (último 0.2 segundos), asegurar loop
                     if (video.duration && video.currentTime >= video.duration - 0.2) {
                         // Asegurar que loop esté activo
@@ -227,30 +246,30 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         }
                     }
                 }, false);
-                
+
                 // Monitor periódico optimizado - verificar menos frecuentemente
                 let monitorInterval = setInterval(() => {
                     // Verificar que el video esté reproduciéndose
                     if (video.paused && !video.ended) {
                         forcePlay();
                     }
-                    
+
                     // Asegurar que loop esté activo
                     if (!video.loop) {
                         video.loop = true;
                     }
-                    
+
                     // Si el video terminó pero no se reinició, forzar reinicio
                     if (video.ended) {
                         video.currentTime = 0;
                         forcePlay();
                     }
                 }, 1000); // Verificar cada 1s (reducido de 500ms para mejor performance)
-                
+
                 // Prevenir cambios en currentTime (adelantar/regresar) - pero permitir loop
                 let lastCurrentTime = 0;
                 let allowSeek = false;
-                
+
                 video.addEventListener('seeking', (e) => {
                     // Permitir si es un reset a 0 (loop) o si el cambio es muy pequeño (normal playback)
                     const timeDiff = Math.abs(video.currentTime - lastCurrentTime);
@@ -260,7 +279,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         return false;
                     }
                 }, { capture: true, passive: false });
-                
+
                 video.addEventListener('seeked', (e) => {
                     // Si es un reset a 0, permitirlo (es el loop)
                     if (video.currentTime === 0) {
@@ -270,7 +289,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         lastCurrentTime = video.currentTime;
                     }
                 }, { capture: true, passive: false });
-                
+
                 // Actualizar lastCurrentTime periódicamente (optimizado)
                 let timeUpdateInterval = setInterval(() => {
                     if (video.currentTime > 0) {
@@ -288,7 +307,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         }
 
     </script>
-    
+
     <!-- OPTIMIZACIÓN: Orden correcto para romper cadenas de solicitudes críticas -->
     <!-- 1. DNS Prefetch (más ligero, establece DNS cache) -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
@@ -309,31 +328,38 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
     <!-- Imágenes críticas para LCP (solo las que aparecen above-the-fold) -->
     <link rel="preload" as="image" href="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" fetchpriority="high">
     <link rel="preload" as="image" href="https://i.ibb.co/ch24Wqjh/ogkush.png" fetchpriority="high">
-    
+
     <!-- 4. Carga asíncrona de Google Fonts CSS (no bloquea renderizado) -->
-    <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap" rel="stylesheet"></noscript>
-    
+    <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap" rel="stylesheet" media="print"
+        onload="this.media='all'">
+    <noscript>
+        <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&display=swap" rel="stylesheet">
+    </noscript>
+
     <!-- 5. Tailwind CSS (movido después de recursos críticos, no bloquea renderizado) -->
     <script src="https://cdn.tailwindcss.com" defer></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
+
         #intro-video-container {
             position: relative;
             width: 100%;
             height: 100vh;
             overflow: hidden;
         }
+
         /* Estilos base para productos */
         .product-card.sold-out .product-content {
             opacity: 0.6;
             filter: grayscale(70%);
         }
+
         .product-card.sold-out .sold-out-overlay {
             display: flex;
         }
+
         /* Estilos para el menú Liquid Glass */
         #filters {
             position: relative;
@@ -345,18 +371,22 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
             overflow: hidden;
             transition: all 0.3s ease;
-            touch-action: none; /* Previene scroll durante touch en la barra */
+            touch-action: none;
+            /* Previene scroll durante touch en la barra */
         }
+
         #filters.dragging-mode {
             overflow: visible;
         }
+
         .filter-btn {
             position: relative;
             z-index: 2;
             padding: 0.125rem 1rem;
             font-size: 0.625rem;
             font-weight: 500;
-            color: #888888; /* gris medio */
+            color: #888888;
+            /* gris medio */
             background: transparent;
             border: none;
             cursor: pointer;
@@ -366,14 +396,18 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             align-items: center;
             justify-content: center;
         }
+
         @media (min-width: 640px) {
             .filter-btn {
                 font-size: 0.75rem;
             }
         }
+
         .filter-btn.active {
-            color: #e5e5e5; /* gris claro para alto contraste */
+            color: #e5e5e5;
+            /* gris claro para alto contraste */
         }
+
         /* Pill indicador con efecto Liquid Glass WebGL */
         #filter-pill {
             position: absolute;
@@ -390,6 +424,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             z-index: 1;
             transform-origin: center center;
         }
+
         /* Efecto al arrastrar - fondo completamente transparente y z-index alto para tapar contenido */
         #filter-pill.dragging {
             transform: scale(1.2);
@@ -400,6 +435,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             border: 1px solid rgba(100, 100, 100, 0.4);
             z-index: 10;
         }
+
         /* Canvas para efecto WebGL */
         .pill-canvas {
             position: absolute;
@@ -412,8 +448,10 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             opacity: 1;
             z-index: 20;
         }
+
         /* Estilos para el mini menú de cantidad */
-        #quantity-selector-flor, #quantity-selector-joint {
+        #quantity-selector-flor,
+        #quantity-selector-joint {
             position: relative;
             display: inline-flex;
             background: rgba(26, 26, 26, 0.6);
@@ -425,9 +463,12 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             transition: all 0.3s ease;
             touch-action: none;
         }
-        #quantity-selector-flor.dragging-mode, #quantity-selector-joint.dragging-mode {
+
+        #quantity-selector-flor.dragging-mode,
+        #quantity-selector-joint.dragging-mode {
             overflow: visible;
         }
+
         .quantity-btn {
             position: relative;
             z-index: 2;
@@ -443,10 +484,13 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             align-items: center;
             justify-content: center;
         }
+
         .quantity-btn.active {
             color: #ffffff;
         }
-        #quantity-pill-flor, #quantity-pill-joint {
+
+        #quantity-pill-flor,
+        #quantity-pill-joint {
             position: absolute;
             top: 0;
             left: 0;
@@ -460,37 +504,47 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             z-index: 1;
             transform-origin: center center;
         }
-        #quantity-pill-flor.dragging, #quantity-pill-joint.dragging {
+
+        #quantity-pill-flor.dragging,
+        #quantity-pill-joint.dragging {
             transform: scale(1.2);
             background: rgba(20, 20, 20, 1.0);
             box-shadow: 0 4px 20px rgba(220, 38, 38, 0.5), inset 0 2px 4px rgba(248, 113, 113, 0.5);
             z-index: 10;
         }
+
         /* Ajustes para móvil */
         @media (max-width: 640px) {
             #quantity-selector-flor .quantity-btn {
                 font-size: 0.7rem;
                 padding: 0.125rem 0.4rem;
             }
-            #flor-price, #pre-roll-price {
+
+            #flor-price,
+            #pre-roll-price {
                 font-size: 0.875rem;
                 text-align: right;
             }
+
             #productos-text {
                 font-size: 4rem !important;
             }
+
             #filters-container {
                 margin-top: -1.75rem !important;
             }
         }
+
         /* Ajustes para desktop - menú más pequeño */
         @media (min-width: 1024px) {
             #quantity-selector-flor .quantity-btn {
-                font-size: 0.75rem; /* más pequeño */
-                padding: 0.125rem 0.5rem; /* más pequeño */
+                font-size: 0.75rem;
+                /* más pequeño */
+                padding: 0.125rem 0.5rem;
+                /* más pequeño */
             }
         }
-        
+
         /* Etiqueta "Nuevo" para productos */
         .product-new-badge {
             position: absolute;
@@ -514,6 +568,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             align-items: center;
             justify-content: center;
         }
+
         .product-new-badge::after {
             content: '';
             position: absolute;
@@ -522,18 +577,23 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
             pointer-events: none;
         }
+
         @keyframes newBadgeGlow {
-            0%, 100% {
+
+            0%,
+            100% {
                 box-shadow: 0 6px 18px rgba(249, 115, 22, 0.3);
             }
+
             50% {
                 box-shadow: 0 10px 24px rgba(249, 115, 22, 0.45);
             }
         }
+
         .product-new-badge.glow {
             animation: newBadgeGlow 3s ease-in-out infinite;
         }
-        
+
         /* Etiqueta "Descuento" para productos */
         .product-discount-badge {
             position: absolute;
@@ -557,6 +617,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             align-items: center;
             justify-content: center;
         }
+
         .product-discount-badge::after {
             content: '';
             position: absolute;
@@ -565,34 +626,41 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05));
             pointer-events: none;
         }
+
         @keyframes discountBadgeGlow {
-            0%, 100% {
+
+            0%,
+            100% {
                 box-shadow: 0 4px 12px rgba(255, 0, 0, 0.6), 0 0 10px rgba(255, 0, 0, 0.4);
             }
+
             50% {
                 box-shadow: 0 6px 16px rgba(255, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.6);
             }
         }
-        
+
         /* Animación de las etiquetas cuando se hace hover en la tarjeta padre */
         .product-card:hover .product-new-badge {
             transform: translateX(-50%) translateY(-50%) scale(1.05);
             box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
         }
+
         .product-card:hover .product-new-badge.glow {
             animation-duration: 1.5s;
         }
+
         .product-card:hover .product-discount-badge {
             transform: translateX(-50%) translateY(-50%) scale(1.05);
             box-shadow: 0 6px 16px rgba(255, 0, 0, 0.8);
         }
-        
+
         /* Estilos para precios con descuento */
         #flor-price-container {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
         }
+
         .price-original {
             text-decoration: line-through;
             opacity: 0.6;
@@ -600,12 +668,13 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             color: #888888;
             white-space: nowrap;
             margin-bottom: 0.25rem;
-            }
+        }
+
         .price-discounted {
             font-weight: 700;
             color: #ffffff;
         }
-        
+
         /* Estilos para bloquear completamente la interacción con el video */
         #intro-video-container,
         #intro-video-container * {
@@ -618,6 +687,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             -webkit-tap-highlight-color: transparent !important;
             touch-action: none !important;
         }
+
         #intro-video {
             position: fixed;
             top: 0;
@@ -645,6 +715,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             /* Ocultar cualquier overlay de controles */
             overflow: hidden !important;
         }
+
         #content-overlay {
             position: relative;
             z-index: 1;
@@ -654,6 +725,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             -webkit-backdrop-filter: blur(28px);
             box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.65);
         }
+
         #la-nave-text {
             position: fixed;
             top: 0;
@@ -671,45 +743,59 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             overflow: hidden;
             box-sizing: border-box;
         }
+
         #intro-video::-webkit-media-controls {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-enclosure {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-panel {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-play-button {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-start-playback-button {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-timeline {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-current-time-display {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-time-remaining-display {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-mute-button {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-volume-slider {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-fullscreen-button {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-overlay-play-button {
             display: none !important;
         }
+
         #intro-video::-webkit-media-controls-overlay-enclosure {
             display: none !important;
         }
+
         /* Safari específico - ocultar todos los controles de forma agresiva */
         #intro-video::-webkit-media-controls-panel,
         #intro-video::-webkit-media-controls-play-button,
@@ -730,7 +816,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             position: absolute !important;
             left: -9999px !important;
         }
-        
+
         /* Safari - Ocultar cualquier overlay o contenedor de controles */
         #intro-video::-webkit-media-controls,
         #intro-video::-webkit-media-controls-enclosure {
@@ -738,7 +824,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             opacity: 0 !important;
             visibility: hidden !important;
         }
-        
+
         /* Prevenir que Safari muestre controles al hacer hover o tocar */
         #intro-video:hover::-webkit-media-controls,
         #intro-video:active::-webkit-media-controls,
@@ -747,6 +833,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             opacity: 0 !important;
             visibility: hidden !important;
         }
+
         /* Estilos para el texto "LA NAVE" */
         .rubik-semibold {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -754,65 +841,79 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             font-weight: 600;
             font-style: normal;
         }
+
         /* Responsive para el texto "LA NAVE" - solo padding y letter-spacing, el tamaño lo maneja JS */
         @media (max-width: 768px) {
             #la-nave-text {
                 padding: 1.5rem 0.5rem !important;
             }
         }
+
         @media (max-width: 480px) {
             #la-nave-text {
                 padding: 1rem 0.5rem !important;
                 letter-spacing: 0.05em !important;
             }
         }
+
         /* Animación para el icono de scroll */
         @keyframes bounce {
-            0%, 100% {
+
+            0%,
+            100% {
                 transform: translateX(-50%) translateY(0);
                 opacity: 1;
             }
+
             50% {
                 transform: translateX(-50%) translateY(-10px);
                 opacity: 0.7;
             }
         }
+
         #scroll-indicator {
             transition: opacity 0.3s ease;
         }
+
         /* Ocultar el icono cuando el usuario hace scroll */
         @media (max-width: 768px) {
             #scroll-indicator {
                 bottom: 1.5rem;
             }
+
             #scroll-indicator svg {
                 width: 52px;
                 height: 52px;
             }
         }
+
         #final-image-section {
-            --final-img-progress: 0.1;
             --final-img-full-height: 320px;
             position: relative;
             width: 100%;
             margin-top: 1.5rem;
             overflow: hidden;
-            height: calc(var(--final-img-full-height) * var(--final-img-progress));
-            transition: height 0.12s ease-out;
+            /* Height will be controlled by JS */
+            height: 50px;
+            will-change: height;
         }
+
         #final-image-section img {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: calc(var(--final-img-full-height));
+            height: 100%;
             display: block;
-            object-fit: cover;
+            object-fit: fill;
+            /* Allow squashing */
             object-position: center top;
             pointer-events: none;
             user-select: none;
             -webkit-user-drag: none;
+            will-change: height;
         }
+
         .final-divider {
             width: 100%;
             height: 1px;
@@ -821,143 +922,176 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         }
     </style>
 </head>
+
 <body style="background-color: #0a0a0a;" class="text-gray-100">
     <!-- Video de introducción -->
-    <div id="intro-video-container" style="pointer-events: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
-        <video 
-            id="intro-video" 
-            autoplay 
-            loop 
-            muted 
-            playsinline
-            controlslist="nodownload nofullscreen noremoteplayback"
-            disablePictureInPicture
-            disableRemotePlayback
-            preload="metadata"
+    <div id="intro-video-container"
+        style="pointer-events: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
+        <video id="intro-video" autoplay loop muted playsinline controlslist="nodownload nofullscreen noremoteplayback"
+            disablePictureInPicture disableRemotePlayback preload="metadata"
             style="pointer-events: none; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;"
-            oncontextmenu="return false;"
-            onselectstart="return false;"
-            ondragstart="return false;"
-            onclick="return false;"
-            ondblclick="return false;"
-        >
-            <source src="https://res.cloudinary.com/dwpsjnorl/video/upload/v1763350684/ESTE_ES_LISTO_kld4i9.mp4" type="video/mp4">
+            oncontextmenu="return false;" onselectstart="return false;" ondragstart="return false;"
+            onclick="return false;" ondblclick="return false;">
+            <source src="https://res.cloudinary.com/dwpsjnorl/video/upload/v1763350684/ESTE_ES_LISTO_kld4i9.mp4"
+                type="video/mp4">
         </video>
         <!-- Texto "LA NAVE" superpuesto sobre el video -->
-        <div id="la-nave-text" class="rubik-semibold" style="position: fixed; top: 0; left: 0; width: 100%; font-weight: 600; color: #ffffff; text-align: center; z-index: 10; pointer-events: none; user-select: none; -webkit-user-select: none; text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); white-space: nowrap; padding: 2rem 1rem; box-sizing: border-box; letter-spacing: 0.01em; line-height: 1; max-width: 100vw; overflow: hidden;">
+        <div id="la-nave-text" class="rubik-semibold"
+            style="position: fixed; top: auto; bottom: 7rem; left: 0; width: 100%; font-family: 'Tanker-Regular', sans-serif; font-weight: 400; color: #ffffff; text-align: center; z-index: 10; pointer-events: none; user-select: none; -webkit-user-select: none; text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8); white-space: nowrap; padding: 2rem 1rem; box-sizing: border-box; letter-spacing: 0.01em; line-height: 1; max-width: 100vw; overflow: hidden;">
             LA NAVE
         </div>
         <!-- Icono de scroll hacia abajo -->
-        <div id="scroll-indicator" style="position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 0; pointer-events: none; user-select: none; -webkit-user-select: none; animation: bounce 2s infinite;">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));">
-                <path d="M7 10L12 15L17 10" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <div id="scroll-indicator"
+            style="position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 0; pointer-events: none; user-select: none; -webkit-user-select: none; animation: bounce 2s infinite;">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.8));">
+                <path d="M7 10L12 15L17 10" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round" />
             </svg>
         </div>
     </div>
     <div id="content-overlay">
-    <div id="envios-gratis-bar" style="background: transparent; width: 100%; text-align: center; padding: 8px 0; font-size: 0.875rem; font-weight: 500; color: #e5e5e5;">
-        Envios GRATIS 24 hrs • Pago solo × transferencia
-    </div>
-    <div class="container mx-auto max-w-2xl lg:max-w-6xl p-4 sm:p-6 lg:px-8 lg:py-6">
-        <header class="flex items-center justify-center mb-4 relative" style="min-height: 8.5rem; position: relative;">
-            <img id="logo-interactivo" src="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" alt="Motita-cherry" draggable="false" decoding="async" style="position: absolute; left: 50%; transform: translateX(-50%) translateY(-0.5rem); z-index: 100; pointer-events: auto; max-width: 150px; height: auto; cursor: grab; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); user-select: none; -webkit-user-select: none; -webkit-user-drag: none; touch-action: none; will-change: transform;">
-            <span id="productos-text" class="font-bold" style="font-family: 'Do Hyeon', sans-serif; color: #e5e5e5; position: absolute; left: 50%; transform: translateX(-50%) translateY(-1.125rem); z-index: 0; white-space: nowrap; pointer-events: none; font-size: 4.5rem; line-height: 1;">PRODUCTOS</span>
-        </header>
-        <div id="filters-container" class="flex justify-center mb-6 lg:mb-8 z-20" style="margin-top: -0.75rem;">
-            <div id="filters" class="py-0 px-1">
-                <div id="filter-pill">
-                    <canvas id="filter-pill-canvas" class="pill-canvas"></canvas>
-                </div>
-                <button class="filter-btn active" data-filter="all"><img src="" class="h-16 w-16 mb-0.5 invisible" alt=""><span>Todo</span></button>
-                <button class="filter-btn" data-filter="flor"><img src="https://i.ibb.co/pjgdB8dg/bud.png" loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5" alt="Flores"><span>Flores</span></button>
-                <button class="filter-btn" data-filter="joint"><img src="https://i.ibb.co/C3PpcNVZ/preroll.png" loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5" alt="Pre-Roll"><span>Pre-Roll</span></button>
-                <button class="filter-btn" data-filter="pen"><img src="https://i.ibb.co/spbj6kKs/pens.png" loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5" alt="Pens"><span>Pens</span></button>
-            </div>
+        <div id="envios-gratis-bar"
+            style="background: transparent; width: 100%; text-align: center; padding: 8px 0; font-size: 0.875rem; font-weight: 500; color: #e5e5e5;">
+            Envios GRATIS 24 hrs • Pago solo × transferencia
         </div>
-        <!-- Grid de Productos -->
-        <div id="product-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-            <!-- Producto OG Kush (Flor) -->
-            <div class="product-card" data-category="flor" style="position: relative;">
-                <div class="product-discount-badge" id="flor-discount-badge" style="display: none;">12% OFF</div>
-                <div style="background-color: #121212; border: 1px solid #151515;" class="rounded-[28px] shadow-md overflow-hidden relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
-                    <div class="product-content p-5">
-                        <div class="flex items-start">
-                            <img src="https://i.ibb.co/ch24Wqjh/ogkush.png" alt="ogkush" class="h-24 w-24 mr-5" fetchpriority="high" decoding="async">
-                            <div class="flex-1">
-                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                                    <h3 class="text-lg sm:text-xl font-bold" style="color: #e5e5e5;">Ice Cream Cake (GH)</h3>
-                                    <div class="flex items-center justify-between w-full mt-2 sm:mt-0 sm:w-auto sm:justify-start">
-                                        <div id="quantity-selector-flor" class="py-0 px-1 mr-2 -ml-0.5">
-                                            <div id="quantity-pill-flor">
-                                                <canvas id="quantity-pill-flor-canvas" class="pill-canvas"></canvas>
+        <div class="container mx-auto max-w-2xl lg:max-w-6xl p-4 sm:p-6 lg:px-8 lg:py-6">
+            <header class="flex items-center justify-center mb-4 relative"
+                style="min-height: 8.5rem; position: relative;">
+                <img id="logo-interactivo" src="https://i.ibb.co/YBmwd2Wg/Motita-cherry.webp" alt="Motita-cherry"
+                    draggable="false" decoding="async"
+                    style="position: absolute; left: 50%; transform: translateX(-50%) translateY(-0.5rem); z-index: 100; pointer-events: auto; max-width: 150px; height: auto; cursor: grab; transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); user-select: none; -webkit-user-select: none; -webkit-user-drag: none; touch-action: none; will-change: transform;">
+                <span id="productos-text" class="font-bold"
+                    style="font-family: 'Do Hyeon', sans-serif; color: #e5e5e5; position: absolute; left: 50%; transform: translateX(-50%) translateY(-1.125rem); z-index: 0; white-space: nowrap; pointer-events: none; font-size: 4.5rem; line-height: 1;">PRODUCTOS</span>
+            </header>
+            <div id="filters-container" class="flex justify-center mb-6 lg:mb-8 z-20" style="margin-top: -0.75rem;">
+                <div id="filters" class="py-0 px-1">
+                    <div id="filter-pill">
+                        <canvas id="filter-pill-canvas" class="pill-canvas"></canvas>
+                    </div>
+                    <button class="filter-btn active" data-filter="all"><img src="" class="h-16 w-16 mb-0.5 invisible"
+                            alt=""><span>Todo</span></button>
+                    <button class="filter-btn" data-filter="flor"><img src="https://i.ibb.co/pjgdB8dg/bud.png"
+                            loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5"
+                            alt="Flores"><span>Flores</span></button>
+                    <button class="filter-btn" data-filter="joint"><img src="https://i.ibb.co/C3PpcNVZ/preroll.png"
+                            loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5"
+                            alt="Pre-Roll"><span>Pre-Roll</span></button>
+                    <button class="filter-btn" data-filter="pen"><img src="https://i.ibb.co/spbj6kKs/pens.png"
+                            loading="lazy" decoding="async" crossorigin="anonymous" class="h-16 w-16 mb-0.5"
+                            alt="Pens"><span>Pens</span></button>
+                </div>
+            </div>
+            <!-- Grid de Productos -->
+            <div id="product-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                <!-- Producto OG Kush (Flor) -->
+                <div class="product-card" data-category="flor" style="position: relative;">
+                    <div class="product-discount-badge" id="flor-discount-badge" style="display: none;">12% OFF</div>
+                    <div style="background-color: #121212; border: 1px solid #151515;"
+                        class="rounded-[28px] shadow-md overflow-hidden relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
+                        <div class="product-content p-5">
+                            <div class="flex items-start">
+                                <img src="https://i.ibb.co/ch24Wqjh/ogkush.png" alt="ogkush" class="h-24 w-24 mr-5"
+                                    fetchpriority="high" decoding="async">
+                                <div class="flex-1">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                        <h3 class="text-lg sm:text-xl font-bold" style="color: #e5e5e5;">Ice Cream Cake
+                                            (GH)</h3>
+                                        <div
+                                            class="flex items-center justify-between w-full mt-2 sm:mt-0 sm:w-auto sm:justify-start">
+                                            <div id="quantity-selector-flor" class="py-0 px-1 mr-2 -ml-0.5">
+                                                <div id="quantity-pill-flor">
+                                                    <canvas id="quantity-pill-flor-canvas" class="pill-canvas"></canvas>
+                                                </div>
+                                                <button class="quantity-btn active"
+                                                    data-quantity="3.5g"><span>3.5g</span></button>
+                                                <button class="quantity-btn" data-quantity="7g"><span>7g</span></button>
+                                                <button class="quantity-btn"
+                                                    data-quantity="1/2 oz"><span>1/2oz</span></button>
+                                                <button class="quantity-btn" data-quantity="1 oz"><span>1<span
+                                                            style="color: #1a1a1a;">.</span>oz</span></button>
                                             </div>
-                                            <button class="quantity-btn active" data-quantity="3.5g"><span>3.5g</span></button>
-                                            <button class="quantity-btn" data-quantity="7g"><span>7g</span></button>
-                                            <button class="quantity-btn" data-quantity="1/2 oz"><span>1/2oz</span></button>
-                                            <button class="quantity-btn" data-quantity="1 oz"><span>1<span style="color: #1a1a1a;">.</span>oz</span></button>
+                                            <div id="flor-price-container">
+                                                <span id="flor-price" class="text-xs sm:text-base font-semibold"
+                                                    style="color: #e5e5e5;">$250</span>
+                                            </div>
                                         </div>
-                                        <div id="flor-price-container">
-                                            <span id="flor-price" class="text-xs sm:text-base font-semibold" style="color: #e5e5e5;">$250</span>
                                     </div>
+                                    <div class="flex items-center justify-between text-sm mt-1">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="font-semibold px-2 py-1 rounded-full"
+                                                style="background-color: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3);">Híbrida</span>
+                                            <span class="text-xs" style="color: #a0a0a0; margin-top: 2px;">THC:
+                                                17%</span>
+                                        </div>
+                                        <span id="flor-price-original" class="price-original"
+                                            style="display: none;"></span>
+                                    </div>
+                                    <p style="color: #888888;" class="mt-3 text-xs sm:text-base">Elevación suave</p>
                                 </div>
-                                </div>
-                                <div class="flex items-center justify-between text-sm mt-1">
-                                    <div class="flex items-center space-x-3">
-                                    <span class="font-semibold px-2 py-1 rounded-full" style="background-color: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3);">Híbrida</span>
-                                    <span class="text-xs" style="color: #a0a0a0; margin-top: 2px;">THC: 17%</span>
-                                </div>
-                                    <span id="flor-price-original" class="price-original" style="display: none;"></span>
-                                </div>
-                                <p style="color: #888888;" class="mt-3 text-xs sm:text-base">Elevación suave</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="sold-out-overlay hidden absolute inset-0 items-center justify-center" style="background-color: rgba(0, 0, 0, 0.7);">
-                        <span class="text-xl font-bold text-white px-4 py-2 rounded-lg transform -rotate-12 shadow-lg" style="background-color: #dc2626;">AGOTADO</span>
-                    </div>
-                </div>
-            </div>
-            <!-- Producto Granddaddy Preroll (Joint) -->
-            <div class="product-card" data-category="joint">
-                <div style="background-color: #121212; border: 1px solid #151515;" class="rounded-[28px] shadow-md overflow-hidden relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
-                    <div class="product-content p-5">
-                        <div class="flex items-start">
-                            <img id="preroll-image" src="https://i.ibb.co/jPpr7YCr/1pre.png" alt="1pre" class="h-24 w-24 mr-5" fetchpriority="high" decoding="async">
-                            <div class="flex-1">
-                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                                    <h3 class="text-xl font-bold" style="color: #e5e5e5;">Granddaddy Preroll</h3>
-                                    <div class="flex items-center justify-between w-full mt-2 sm:mt-0 sm:w-auto sm:justify-start">
-                                        <div id="quantity-selector-joint" class="py-0 px-1 mr-2 -ml-0.5">
-                                            <div id="quantity-pill-joint">
-                                                <canvas id="quantity-pill-joint-canvas" class="pill-canvas"></canvas>
-                                            </div>
-                                            <button class="quantity-btn active" data-quantity="1"><span>1</span></button>
-                                            <button class="quantity-btn" data-quantity="2"><span>2</span></button>
-                                            <button class="quantity-btn" data-quantity="3"><span>3</span></button>
-                                            <button class="quantity-btn" data-quantity="5"><span>5</span></button>
-                                        </div>
-                                        <span id="pre-roll-price" class="text-xs sm:text-base font-semibold" style="color: #e5e5e5;">$150</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-3 text-sm mt-1">
-                                    <span class="font-semibold px-2 py-1 rounded-full" style="background-color: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3);">Híbrida</span>
-                                    <span class="text-xs" style="color: #a0a0a0; margin-top: 2px;">THC: 17%</span>
-                                </div>
-                                <p style="color: #888888;" class="mt-3 text-xs sm:text-base">Relajante, feliz, calma</p>
-                            </div>
+                        <div class="sold-out-overlay hidden absolute inset-0 items-center justify-center"
+                            style="background-color: rgba(0, 0, 0, 0.7);">
+                            <span
+                                class="text-xl font-bold text-white px-4 py-2 rounded-lg transform -rotate-12 shadow-lg"
+                                style="background-color: #dc2626;">AGOTADO</span>
                         </div>
                     </div>
-                    <div class="sold-out-overlay hidden absolute inset-0 items-center justify-center" style="background-color: rgba(0, 0, 0, 0.7);">
-                        <span class="text-xl font-bold text-white px-4 py-2 rounded-lg transform -rotate-12 shadow-lg" style="background-color: #dc2626;">AGOTADO</span>
+                </div>
+                <!-- Producto Granddaddy Preroll (Joint) -->
+                <div class="product-card" data-category="joint">
+                    <div style="background-color: #121212; border: 1px solid #151515;"
+                        class="rounded-[28px] shadow-md overflow-hidden relative transition-transform duration-300 hover:scale-[1.02] hover:shadow-xl">
+                        <div class="product-content p-5">
+                            <div class="flex items-start">
+                                <img id="preroll-image" src="https://i.ibb.co/jPpr7YCr/1pre.png" alt="1pre"
+                                    class="h-24 w-24 mr-5" fetchpriority="high" decoding="async">
+                                <div class="flex-1">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                        <h3 class="text-xl font-bold" style="color: #e5e5e5;">Granddaddy Preroll</h3>
+                                        <div
+                                            class="flex items-center justify-between w-full mt-2 sm:mt-0 sm:w-auto sm:justify-start">
+                                            <div id="quantity-selector-joint" class="py-0 px-1 mr-2 -ml-0.5">
+                                                <div id="quantity-pill-joint">
+                                                    <canvas id="quantity-pill-joint-canvas"
+                                                        class="pill-canvas"></canvas>
+                                                </div>
+                                                <button class="quantity-btn active"
+                                                    data-quantity="1"><span>1</span></button>
+                                                <button class="quantity-btn" data-quantity="2"><span>2</span></button>
+                                                <button class="quantity-btn" data-quantity="3"><span>3</span></button>
+                                                <button class="quantity-btn" data-quantity="5"><span>5</span></button>
+                                            </div>
+                                            <span id="pre-roll-price" class="text-xs sm:text-base font-semibold"
+                                                style="color: #e5e5e5;">$150</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-3 text-sm mt-1">
+                                        <span class="font-semibold px-2 py-1 rounded-full"
+                                            style="background-color: rgba(139, 92, 246, 0.15); color: #c4b5fd; border: 1px solid rgba(139, 92, 246, 0.3);">Híbrida</span>
+                                        <span class="text-xs" style="color: #a0a0a0; margin-top: 2px;">THC: 17%</span>
+                                    </div>
+                                    <p style="color: #888888;" class="mt-3 text-xs sm:text-base">Relajante, feliz, calma
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sold-out-overlay hidden absolute inset-0 items-center justify-center"
+                            style="background-color: rgba(0, 0, 0, 0.7);">
+                            <span
+                                class="text-xl font-bold text-white px-4 py-2 rounded-lg transform -rotate-12 shadow-lg"
+                                style="background-color: #dc2626;">AGOTADO</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <!-- Coming Soon for Pens -->
-            <div id="coming-soon-pen" style="display: none;" class="text-center">
-                <img src="https://i.ibb.co/35MZbtvJ/Sin-t-tulo-min.png" loading="lazy" decoding="async" alt="Sin-t-tulo-min" style="width: 80%; margin: 0 auto;">
+                <!-- Coming Soon for Pens -->
+                <div id="coming-soon-pen" style="display: none;" class="text-center">
+                    <img src="https://i.ibb.co/35MZbtvJ/Sin-t-tulo-min.png" loading="lazy" decoding="async"
+                        alt="Sin-t-tulo-min" style="width: 80%; margin: 0 auto;">
+                </div>
             </div>
         </div>
-    </div>
         <div id="final-image-section">
             <img src="https://i.ibb.co/W4LLBK7J/layerfinal.webp" alt="layerfinal" loading="lazy" decoding="async">
         </div>
@@ -968,459 +1102,459 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         function loadHeavyScripts() {
             // Ejecutar inmediatamente si el DOM ya está listo, sino esperar a DOMContentLoaded
             const initScripts = () => {
-            // Script para el menú de filtros
-            const filtersContainer = document.getElementById('filters');
-            const pill = document.getElementById('filter-pill');
-            const filterButtons = document.querySelectorAll('.filter-btn');
-            const productCards = document.querySelectorAll('.product-card');
-            let activeButton = document.querySelector('.filter-btn.active');
-            let isDragging = false;
-            let startX, currentX;
-            // Función para actualizar la posición y ancho de la pill
-            const updatePill = (button, animate = true) => {
-                const setStyles = () => {
-                    pill.style.width = `${button.offsetWidth}px`;
-                    pill.style.left = `${button.offsetLeft}px`;
-                };
-                if (!animate) {
-                    pill.style.transition = 'none';
-                    setStyles();
-                    requestAnimationFrame(() => {
-                        pill.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
-                    });
-                } else {
-                    requestAnimationFrame(setStyles);
-                }
-            };
-            // Inicializar pill en el botón activo
-            updatePill(activeButton, false);
-            // Manejar clics en botones
-            filterButtons.forEach(button => {
-                const handlePress = (e) => {
-                    e.preventDefault();
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    activeButton = button;
-                    updatePill(button);
-                    applyFilter(button.getAttribute('data-filter'));
-                };
-                button.addEventListener('mousedown', handlePress);
-                button.addEventListener('touchstart', handlePress, { passive: false });
-            });
-            // Función para aplicar filtro
-            const applyFilter = (filter) => {
-                productCards.forEach(card => {
-                    const category = card.getAttribute('data-category');
-                    card.style.display = (filter === 'all' || filter === category) ? 'block' : 'none';
-                });
-                const comingSoonPen = document.getElementById('coming-soon-pen');
-                comingSoonPen.style.display = (filter === 'pen') ? 'block' : 'none';
-            };
-            // Manejar inicio de drag
-            const startDrag = (e) => {
-                const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
-                const rect = filtersContainer.getBoundingClientRect();
-                const clickX = clientX - rect.left;
-                const pillLeft = parseFloat(pill.style.left || 0);
-                const pillWidth = pill.offsetWidth;
-                if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
-                    initiateDrag(clientX);
-                    e.preventDefault();
-                }
-            };
-            // Función para iniciar el drag inmediatamente
-            const initiateDrag = (clientX) => {
-                isDragging = true;
-                filtersContainer.classList.add('dragging-mode');
-                pill.classList.add('dragging');
-                pill.style.transition = 'transform 0.2s ease'; // Transición solo para transform (scale)
-                startX = clientX - parseFloat(pill.style.left || 0);
-                
-                // Activar efecto WebGL
-                if (filterPillGL) filterPillGL.activate();
-                
-                document.addEventListener('mousemove', onDrag);
-                document.addEventListener('touchmove', onDrag, { passive: false });
-                document.addEventListener('mouseup', endDrag);
-                document.addEventListener('touchend', endDrag);
-            };
-            // Manejar movimiento
-            const onDrag = (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
-                currentX = clientX - startX;
-                const minLeft = 0;
-                const maxLeft = filtersContainer.offsetWidth - pill.offsetWidth;
-                pill.style.left = `${Math.max(minLeft, Math.min(currentX, maxLeft))}px`;
-            };
-            // Manejar fin de drag
-            const endDrag = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                filtersContainer.classList.remove('dragging-mode');
-                pill.classList.remove('dragging');
-                pill.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Transición con rebote para todo
-                
-                // Desactivar efecto WebGL
-                if (filterPillGL) filterPillGL.deactivate();
-                
-                document.removeEventListener('mousemove', onDrag);
-                document.removeEventListener('touchmove', onDrag);
-                document.removeEventListener('mouseup', endDrag);
-                document.removeEventListener('touchend', endDrag);
-                // Encontrar el botón en cuya área cae el centro de la pill
-                let targetButton = null;
-                const pillCenter = parseFloat(pill.style.left) + pill.offsetWidth / 2;
-                filterButtons.forEach(button => {
-                    if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
-                        targetButton = button;
+                // Script para el menú de filtros
+                const filtersContainer = document.getElementById('filters');
+                const pill = document.getElementById('filter-pill');
+                const filterButtons = document.querySelectorAll('.filter-btn');
+                const productCards = document.querySelectorAll('.product-card');
+                let activeButton = document.querySelector('.filter-btn.active');
+                let isDragging = false;
+                let startX, currentX;
+                // Función para actualizar la posición y ancho de la pill
+                const updatePill = (button, animate = true) => {
+                    const setStyles = () => {
+                        pill.style.width = `${button.offsetWidth}px`;
+                        pill.style.left = `${button.offsetLeft}px`;
+                    };
+                    if (!animate) {
+                        pill.style.transition = 'none';
+                        setStyles();
+                        requestAnimationFrame(() => {
+                            pill.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                        });
+                    } else {
+                        requestAnimationFrame(setStyles);
                     }
+                };
+                // Inicializar pill en el botón activo
+                updatePill(activeButton, false);
+                // Manejar clics en botones
+                filterButtons.forEach(button => {
+                    const handlePress = (e) => {
+                        e.preventDefault();
+                        filterButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        activeButton = button;
+                        updatePill(button);
+                        applyFilter(button.getAttribute('data-filter'));
+                    };
+                    button.addEventListener('mousedown', handlePress);
+                    button.addEventListener('touchstart', handlePress, { passive: false });
                 });
-                // Actualizar al botón target con animación de rebote
-                if (targetButton) {
-                    filterButtons.forEach(btn => btn.classList.remove('active'));
-                    targetButton.classList.add('active');
-                    activeButton = targetButton;
-                    updatePill(targetButton, true);
-                    applyFilter(targetButton.getAttribute('data-filter'));
-                } else {
-                    // Si no se encuentra, snap back
-                    updatePill(activeButton, true);
-                }
-                // Restaurar transición original después de la animación
-                setTimeout(() => {
-                    pill.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
-                }, 300);
-            };
-            // Habilitar drag en el contenedor
-            filtersContainer.addEventListener('mousedown', startDrag);
-            filtersContainer.addEventListener('touchstart', startDrag, { passive: false });
-            // Script para el mini menú de cantidad para flor
-            const quantityContainerFlor = document.getElementById('quantity-selector-flor');
-            const qPillFlor = document.getElementById('quantity-pill-flor');
-            const quantityButtonsFlor = quantityContainerFlor.querySelectorAll('.quantity-btn');
-            let activeQButtonFlor = quantityContainerFlor.querySelector('.quantity-btn.active');
-            let isQDraggingFlor = false;
-            let qStartXFlor, qCurrentXFlor;
-            const updateQPillFlor = (button, animate = true) => {
-                const setStyles = () => {
-                    qPillFlor.style.width = `${button.offsetWidth}px`;
-                    qPillFlor.style.left = `${button.offsetLeft}px`;
-                };
-                if (!animate) {
-                    qPillFlor.style.transition = 'none';
-                    setStyles();
-                    requestAnimationFrame(() => {
-                        qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                // Función para aplicar filtro
+                const applyFilter = (filter) => {
+                    productCards.forEach(card => {
+                        const category = card.getAttribute('data-category');
+                        card.style.display = (filter === 'all' || filter === category) ? 'block' : 'none';
                     });
-                } else {
-                    requestAnimationFrame(setStyles);
-                }
-            };
-            updateQPillFlor(activeQButtonFlor, false);
-            quantityButtonsFlor.forEach(button => {
-                const handlePress = (e) => {
+                    const comingSoonPen = document.getElementById('coming-soon-pen');
+                    comingSoonPen.style.display = (filter === 'pen') ? 'block' : 'none';
+                };
+                // Manejar inicio de drag
+                const startDrag = (e) => {
+                    const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
+                    const rect = filtersContainer.getBoundingClientRect();
+                    const clickX = clientX - rect.left;
+                    const pillLeft = parseFloat(pill.style.left || 0);
+                    const pillWidth = pill.offsetWidth;
+                    if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
+                        initiateDrag(clientX);
+                        e.preventDefault();
+                    }
+                };
+                // Función para iniciar el drag inmediatamente
+                const initiateDrag = (clientX) => {
+                    isDragging = true;
+                    filtersContainer.classList.add('dragging-mode');
+                    pill.classList.add('dragging');
+                    pill.style.transition = 'transform 0.2s ease'; // Transición solo para transform (scale)
+                    startX = clientX - parseFloat(pill.style.left || 0);
+
+                    // Activar efecto WebGL
+                    if (filterPillGL) filterPillGL.activate();
+
+                    document.addEventListener('mousemove', onDrag);
+                    document.addEventListener('touchmove', onDrag, { passive: false });
+                    document.addEventListener('mouseup', endDrag);
+                    document.addEventListener('touchend', endDrag);
+                };
+                // Manejar movimiento
+                const onDrag = (e) => {
+                    if (!isDragging) return;
                     e.preventDefault();
-                    quantityButtonsFlor.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    activeQButtonFlor = button;
-                    updateQPillFlor(button);
-                    applyQuantityFlor(button.getAttribute('data-quantity'));
+                    const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
+                    currentX = clientX - startX;
+                    const minLeft = 0;
+                    const maxLeft = filtersContainer.offsetWidth - pill.offsetWidth;
+                    pill.style.left = `${Math.max(minLeft, Math.min(currentX, maxLeft))}px`;
                 };
-                button.addEventListener('mousedown', handlePress);
-                button.addEventListener('touchstart', handlePress, { passive: false });
-            });
-            const applyQuantityFlor = (quantity) => {
-                const prices = {
-                    '3.5g': 250,
-                    '7g': 450,
-                    '1/2 oz': 820,
-                    '1 oz': 1200  // Precio con descuento (antes $1370)
+                // Manejar fin de drag
+                const endDrag = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    filtersContainer.classList.remove('dragging-mode');
+                    pill.classList.remove('dragging');
+                    pill.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)'; // Transición con rebote para todo
+
+                    // Desactivar efecto WebGL
+                    if (filterPillGL) filterPillGL.deactivate();
+
+                    document.removeEventListener('mousemove', onDrag);
+                    document.removeEventListener('touchmove', onDrag);
+                    document.removeEventListener('mouseup', endDrag);
+                    document.removeEventListener('touchend', endDrag);
+                    // Encontrar el botón en cuya área cae el centro de la pill
+                    let targetButton = null;
+                    const pillCenter = parseFloat(pill.style.left) + pill.offsetWidth / 2;
+                    filterButtons.forEach(button => {
+                        if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
+                            targetButton = button;
+                        }
+                    });
+                    // Actualizar al botón target con animación de rebote
+                    if (targetButton) {
+                        filterButtons.forEach(btn => btn.classList.remove('active'));
+                        targetButton.classList.add('active');
+                        activeButton = targetButton;
+                        updatePill(targetButton, true);
+                        applyFilter(targetButton.getAttribute('data-filter'));
+                    } else {
+                        // Si no se encuentra, snap back
+                        updatePill(activeButton, true);
+                    }
+                    // Restaurar transición original después de la animación
+                    setTimeout(() => {
+                        pill.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                    }, 300);
                 };
-                
-                const discountBadge = document.getElementById('flor-discount-badge');
-                const priceContainer = document.getElementById('flor-price-container');
-                const priceOriginal = document.getElementById('flor-price-original');
-                
-                // Mostrar etiqueta de descuento y precios solo para "1 oz"
-                if (quantity === '1 oz') {
-                    const originalPrice = 1370;
-                    const discountedPrice = 1200;
-                    const discountPercent = Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
-                    discountBadge.textContent = `${discountPercent}% OFF`;
-                    discountBadge.style.display = 'inline-flex';
-                    
-                    // Mostrar precio tachado en la línea de "Híbrida"
-                    priceOriginal.textContent = `$${originalPrice}`;
-                    priceOriginal.style.display = 'inline';
-                    
-                    // Mostrar solo nuevo precio
-                    priceContainer.innerHTML = `
+                // Habilitar drag en el contenedor
+                filtersContainer.addEventListener('mousedown', startDrag);
+                filtersContainer.addEventListener('touchstart', startDrag, { passive: false });
+                // Script para el mini menú de cantidad para flor
+                const quantityContainerFlor = document.getElementById('quantity-selector-flor');
+                const qPillFlor = document.getElementById('quantity-pill-flor');
+                const quantityButtonsFlor = quantityContainerFlor.querySelectorAll('.quantity-btn');
+                let activeQButtonFlor = quantityContainerFlor.querySelector('.quantity-btn.active');
+                let isQDraggingFlor = false;
+                let qStartXFlor, qCurrentXFlor;
+                const updateQPillFlor = (button, animate = true) => {
+                    const setStyles = () => {
+                        qPillFlor.style.width = `${button.offsetWidth}px`;
+                        qPillFlor.style.left = `${button.offsetLeft}px`;
+                    };
+                    if (!animate) {
+                        qPillFlor.style.transition = 'none';
+                        setStyles();
+                        requestAnimationFrame(() => {
+                            qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                        });
+                    } else {
+                        requestAnimationFrame(setStyles);
+                    }
+                };
+                updateQPillFlor(activeQButtonFlor, false);
+                quantityButtonsFlor.forEach(button => {
+                    const handlePress = (e) => {
+                        e.preventDefault();
+                        quantityButtonsFlor.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        activeQButtonFlor = button;
+                        updateQPillFlor(button);
+                        applyQuantityFlor(button.getAttribute('data-quantity'));
+                    };
+                    button.addEventListener('mousedown', handlePress);
+                    button.addEventListener('touchstart', handlePress, { passive: false });
+                });
+                const applyQuantityFlor = (quantity) => {
+                    const prices = {
+                        '3.5g': 250,
+                        '7g': 450,
+                        '1/2 oz': 820,
+                        '1 oz': 1200  // Precio con descuento (antes $1370)
+                    };
+
+                    const discountBadge = document.getElementById('flor-discount-badge');
+                    const priceContainer = document.getElementById('flor-price-container');
+                    const priceOriginal = document.getElementById('flor-price-original');
+
+                    // Mostrar etiqueta de descuento y precios solo para "1 oz"
+                    if (quantity === '1 oz') {
+                        const originalPrice = 1370;
+                        const discountedPrice = 1200;
+                        const discountPercent = Math.round(((originalPrice - discountedPrice) / originalPrice) * 100);
+                        discountBadge.textContent = `${discountPercent}% OFF`;
+                        discountBadge.style.display = 'inline-flex';
+
+                        // Mostrar precio tachado en la línea de "Híbrida"
+                        priceOriginal.textContent = `$${originalPrice}`;
+                        priceOriginal.style.display = 'inline';
+
+                        // Mostrar solo nuevo precio
+                        priceContainer.innerHTML = `
                         <span id="flor-price" class="text-xs sm:text-sm font-semibold price-discounted">$${discountedPrice}</span>
                     `;
-                } else {
-                    discountBadge.style.display = 'none';
-                    priceOriginal.style.display = 'none';
-                    
-                    // Mostrar solo precio normal
-                    priceContainer.innerHTML = `
+                    } else {
+                        discountBadge.style.display = 'none';
+                        priceOriginal.style.display = 'none';
+
+                        // Mostrar solo precio normal
+                        priceContainer.innerHTML = `
                         <span id="flor-price" class="text-xs sm:text-base font-semibold" style="color: #e5e5e5;">$${prices[quantity]}</span>
                     `;
-                }
-            };
-            applyQuantityFlor(activeQButtonFlor.getAttribute('data-quantity'));
-            const startQDragFlor = (e) => {
-                const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
-                const rect = quantityContainerFlor.getBoundingClientRect();
-                const clickX = clientX - rect.left;
-                const pillLeft = parseFloat(qPillFlor.style.left || 0);
-                const pillWidth = qPillFlor.offsetWidth;
-                if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
-                    initiateQDragFlor(clientX);
-                    e.preventDefault();
-                }
-            };
-            const initiateQDragFlor = (clientX) => {
-                isQDraggingFlor = true;
-                quantityContainerFlor.classList.add('dragging-mode');
-                qPillFlor.classList.add('dragging');
-                qPillFlor.style.transition = 'transform 0.2s ease';
-                
-                // Activar efecto WebGL
-                if (qPillFlorGL) qPillFlorGL.activate();
-                
-                qStartXFlor = clientX - parseFloat(qPillFlor.style.left || 0);
-                document.addEventListener('mousemove', onQDragFlor);
-                document.addEventListener('touchmove', onQDragFlor, { passive: false });
-                document.addEventListener('mouseup', endQDragFlor);
-                document.addEventListener('touchend', endQDragFlor);
-            };
-            const onQDragFlor = (e) => {
-                if (!isQDraggingFlor) return;
-                e.preventDefault();
-                const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
-                qCurrentXFlor = clientX - qStartXFlor;
-                const minLeft = 0;
-                const maxLeft = quantityContainerFlor.offsetWidth - qPillFlor.offsetWidth;
-                qPillFlor.style.left = `${Math.max(minLeft, Math.min(qCurrentXFlor, maxLeft))}px`;
-            };
-            const endQDragFlor = (e) => {
-                if (!isQDraggingFlor) return;
-                isQDraggingFlor = false;
-                quantityContainerFlor.classList.remove('dragging-mode');
-                qPillFlor.classList.remove('dragging');
-                qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-                
-                // Desactivar efecto WebGL
-                if (qPillFlorGL) qPillFlorGL.deactivate();
-                
-                document.removeEventListener('mousemove', onQDragFlor);
-                document.removeEventListener('touchmove', onQDragFlor);
-                document.removeEventListener('mouseup', endQDragFlor);
-                document.removeEventListener('touchend', endQDragFlor);
-                let targetButton = null;
-                const pillCenter = parseFloat(qPillFlor.style.left) + qPillFlor.offsetWidth / 2;
-                quantityButtonsFlor.forEach(button => {
-                    if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
-                        targetButton = button;
                     }
-                });
-                if (targetButton) {
-                    quantityButtonsFlor.forEach(btn => btn.classList.remove('active'));
-                    targetButton.classList.add('active');
-                    activeQButtonFlor = targetButton;
-                    updateQPillFlor(targetButton, true);
-                    applyQuantityFlor(targetButton.getAttribute('data-quantity'));
-                } else {
-                    updateQPillFlor(activeQButtonFlor, true);
-                }
-                setTimeout(() => {
-                    qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
-                }, 300);
-            };
-            quantityContainerFlor.addEventListener('mousedown', startQDragFlor);
-            quantityContainerFlor.addEventListener('touchstart', startQDragFlor, { passive: false });
-            // Script para el mini menú de cantidad para joint
-            const quantityContainerJoint = document.getElementById('quantity-selector-joint');
-            const qPillJoint = document.getElementById('quantity-pill-joint');
-            const quantityButtonsJoint = quantityContainerJoint.querySelectorAll('.quantity-btn');
-            let activeQButtonJoint = quantityContainerJoint.querySelector('.quantity-btn.active');
-            let isQDraggingJoint = false;
-            let qStartXJoint, qCurrentXJoint;
-            const updateQPillJoint = (button, animate = true) => {
-                const setStyles = () => {
-                    qPillJoint.style.width = `${button.offsetWidth}px`;
-                    qPillJoint.style.left = `${button.offsetLeft}px`;
                 };
-                if (!animate) {
-                    qPillJoint.style.transition = 'none';
-                    setStyles();
-                    requestAnimationFrame(() => {
-                        qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
-                    });
-                } else {
-                    requestAnimationFrame(setStyles);
-                }
-            };
-            updateQPillJoint(activeQButtonJoint, false);
-            quantityButtonsJoint.forEach(button => {
-                const handlePress = (e) => {
-                    e.preventDefault();
-                    quantityButtonsJoint.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    activeQButtonJoint = button;
-                    updateQPillJoint(button);
-                    applyQuantityJoint(button.getAttribute('data-quantity'));
-                };
-                button.addEventListener('mousedown', handlePress);
-                button.addEventListener('touchstart', handlePress, { passive: false });
-            });
-            const applyQuantityJoint = (quantity) => {
-                const prices = {
-                    '1': 150,
-                    '2': 280,
-                    '3': 380,
-                    '5': 500
-                };
-                const images = {
-                    '1': 'https://i.ibb.co/jPpr7YCr/1pre.png',
-                    '2': 'https://i.ibb.co/k6MSZg39/2pre.png',
-                    '3': 'https://i.ibb.co/TBsZ8r3c/3pre.png',
-                    '5': 'https://i.ibb.co/0Rj8KMmJ/5pre.png'
-                };
-                document.getElementById('pre-roll-price').textContent = `$${prices[quantity]}`;
-                document.getElementById('preroll-image').src = images[quantity];
-            };
-            applyQuantityJoint(activeQButtonJoint.getAttribute('data-quantity'));
-            const startQDragJoint = (e) => {
-                const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
-                const rect = quantityContainerJoint.getBoundingClientRect();
-                const clickX = clientX - rect.left;
-                const pillLeft = parseFloat(qPillJoint.style.left || 0);
-                const pillWidth = qPillJoint.offsetWidth;
-                if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
-                    initiateQDragJoint(clientX);
-                    e.preventDefault();
-                }
-            };
-            const initiateQDragJoint = (clientX) => {
-                isQDraggingJoint = true;
-                quantityContainerJoint.classList.add('dragging-mode');
-                qPillJoint.classList.add('dragging');
-                qPillJoint.style.transition = 'transform 0.2s ease';
-                
-                // Activar efecto WebGL
-                if (qPillJointGL) qPillJointGL.activate();
-                
-                qStartXJoint = clientX - parseFloat(qPillJoint.style.left || 0);
-                document.addEventListener('mousemove', onQDragJoint);
-                document.addEventListener('touchmove', onQDragJoint, { passive: false });
-                document.addEventListener('mouseup', endQDragJoint);
-                document.addEventListener('touchend', endQDragJoint);
-            };
-            const onQDragJoint = (e) => {
-                if (!isQDraggingJoint) return;
-                e.preventDefault();
-                const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
-                qCurrentXJoint = clientX - qStartXJoint;
-                const minLeft = 0;
-                const maxLeft = quantityContainerJoint.offsetWidth - qPillJoint.offsetWidth;
-                qPillJoint.style.left = `${Math.max(minLeft, Math.min(qCurrentXJoint, maxLeft))}px`;
-            };
-            const endQDragJoint = (e) => {
-                if (!isQDraggingJoint) return;
-                isQDraggingJoint = false;
-                quantityContainerJoint.classList.remove('dragging-mode');
-                qPillJoint.classList.remove('dragging');
-                qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-                
-                // Desactivar efecto WebGL
-                if (qPillJointGL) qPillJointGL.deactivate();
-                
-                document.removeEventListener('mousemove', onQDragJoint);
-                document.removeEventListener('touchmove', onQDragJoint);
-                document.removeEventListener('mouseup', endQDragJoint);
-                document.removeEventListener('touchend', endQDragJoint);
-                let targetButton = null;
-                const pillCenter = parseFloat(qPillJoint.style.left) + qPillJoint.offsetWidth / 2;
-                quantityButtonsJoint.forEach(button => {
-                    if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
-                        targetButton = button;
+                applyQuantityFlor(activeQButtonFlor.getAttribute('data-quantity'));
+                const startQDragFlor = (e) => {
+                    const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
+                    const rect = quantityContainerFlor.getBoundingClientRect();
+                    const clickX = clientX - rect.left;
+                    const pillLeft = parseFloat(qPillFlor.style.left || 0);
+                    const pillWidth = qPillFlor.offsetWidth;
+                    if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
+                        initiateQDragFlor(clientX);
+                        e.preventDefault();
                     }
-                });
-                if (targetButton) {
-                    quantityButtonsJoint.forEach(btn => btn.classList.remove('active'));
-                    targetButton.classList.add('active');
-                    activeQButtonJoint = targetButton;
-                    updateQPillJoint(targetButton, true);
-                    applyQuantityJoint(targetButton.getAttribute('data-quantity'));
-                } else {
-                    updateQPillJoint(activeQButtonJoint, true);
-                }
-                setTimeout(() => {
-                    qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
-                }, 300);
-            };
-            quantityContainerJoint.addEventListener('mousedown', startQDragJoint);
-            quantityContainerJoint.addEventListener('touchstart', startQDragJoint, { passive: false });
+                };
+                const initiateQDragFlor = (clientX) => {
+                    isQDraggingFlor = true;
+                    quantityContainerFlor.classList.add('dragging-mode');
+                    qPillFlor.classList.add('dragging');
+                    qPillFlor.style.transition = 'transform 0.2s ease';
 
-            // ============================================
-            // SISTEMA WEBGL LIQUID GLASS PARA PÍLDORAS
-            // ============================================
-            
-            class GlassPillWebGL {
-                constructor(canvasId, pillElement, baseColor = [50, 50, 50]) {
-                    this.canvas = document.getElementById(canvasId);
-                    this.pillElement = pillElement;
-                    this.baseColor = baseColor;
-                    this.gl = null;
-                    this.program = null;
-                    this.texture = null;
-                    this.frameCount = 0;
-                    this.isActive = false; // Control para activar solo cuando se arrastra
-                    
-                    // Parámetros específicos solicitados - ligeramente más agresivos
-                    this.physics = {
-                        refraction: 1.12,   // IOR (ligeramente aumentado)
-                        spread: 0.70,       // Refraction Spread (ligeramente más dispersión)
-                        distortion: 0.115,  // Distortion (ligeramente más deformación)
-                        chromatic: 0.100,   // Chromatic Aberration (ligeramente más aberración)
-                        edge: 0.88          // Edge Intensity (ligeramente más intensidad)
-                    };
-                    
-                    if (this.canvas) {
-                        this.init();
+                    // Activar efecto WebGL
+                    if (qPillFlorGL) qPillFlorGL.activate();
+
+                    qStartXFlor = clientX - parseFloat(qPillFlor.style.left || 0);
+                    document.addEventListener('mousemove', onQDragFlor);
+                    document.addEventListener('touchmove', onQDragFlor, { passive: false });
+                    document.addEventListener('mouseup', endQDragFlor);
+                    document.addEventListener('touchend', endQDragFlor);
+                };
+                const onQDragFlor = (e) => {
+                    if (!isQDraggingFlor) return;
+                    e.preventDefault();
+                    const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
+                    qCurrentXFlor = clientX - qStartXFlor;
+                    const minLeft = 0;
+                    const maxLeft = quantityContainerFlor.offsetWidth - qPillFlor.offsetWidth;
+                    qPillFlor.style.left = `${Math.max(minLeft, Math.min(qCurrentXFlor, maxLeft))}px`;
+                };
+                const endQDragFlor = (e) => {
+                    if (!isQDraggingFlor) return;
+                    isQDraggingFlor = false;
+                    quantityContainerFlor.classList.remove('dragging-mode');
+                    qPillFlor.classList.remove('dragging');
+                    qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+                    // Desactivar efecto WebGL
+                    if (qPillFlorGL) qPillFlorGL.deactivate();
+
+                    document.removeEventListener('mousemove', onQDragFlor);
+                    document.removeEventListener('touchmove', onQDragFlor);
+                    document.removeEventListener('mouseup', endQDragFlor);
+                    document.removeEventListener('touchend', endQDragFlor);
+                    let targetButton = null;
+                    const pillCenter = parseFloat(qPillFlor.style.left) + qPillFlor.offsetWidth / 2;
+                    quantityButtonsFlor.forEach(button => {
+                        if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
+                            targetButton = button;
+                        }
+                    });
+                    if (targetButton) {
+                        quantityButtonsFlor.forEach(btn => btn.classList.remove('active'));
+                        targetButton.classList.add('active');
+                        activeQButtonFlor = targetButton;
+                        updateQPillFlor(targetButton, true);
+                        applyQuantityFlor(targetButton.getAttribute('data-quantity'));
                     } else {
-                        console.error('Canvas no encontrado para:', canvasId);
+                        updateQPillFlor(activeQButtonFlor, true);
                     }
-                }
-                
-                activate() {
-                    this.isActive = true;
-                }
-                
-                deactivate() {
-                    this.isActive = false;
-                }
-                
-                init() {
-                    this.initWebGL();
-                    this.setupCanvas();
-                    this.startRender();
-                }
-                
-                initWebGL() {
-                    this.gl = this.canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false }) || 
-                              this.canvas.getContext('experimental-webgl', { alpha: true, premultipliedAlpha: false });
-                    if (!this.gl) {
-                        console.error('WebGL no disponible para:', this.canvas.id);
-                        return;
+                    setTimeout(() => {
+                        qPillFlor.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                    }, 300);
+                };
+                quantityContainerFlor.addEventListener('mousedown', startQDragFlor);
+                quantityContainerFlor.addEventListener('touchstart', startQDragFlor, { passive: false });
+                // Script para el mini menú de cantidad para joint
+                const quantityContainerJoint = document.getElementById('quantity-selector-joint');
+                const qPillJoint = document.getElementById('quantity-pill-joint');
+                const quantityButtonsJoint = quantityContainerJoint.querySelectorAll('.quantity-btn');
+                let activeQButtonJoint = quantityContainerJoint.querySelector('.quantity-btn.active');
+                let isQDraggingJoint = false;
+                let qStartXJoint, qCurrentXJoint;
+                const updateQPillJoint = (button, animate = true) => {
+                    const setStyles = () => {
+                        qPillJoint.style.width = `${button.offsetWidth}px`;
+                        qPillJoint.style.left = `${button.offsetLeft}px`;
+                    };
+                    if (!animate) {
+                        qPillJoint.style.transition = 'none';
+                        setStyles();
+                        requestAnimationFrame(() => {
+                            qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                        });
+                    } else {
+                        requestAnimationFrame(setStyles);
                     }
-                    
-                    const gl = this.gl;
-                    
-                    const vertexShaderSource = `
+                };
+                updateQPillJoint(activeQButtonJoint, false);
+                quantityButtonsJoint.forEach(button => {
+                    const handlePress = (e) => {
+                        e.preventDefault();
+                        quantityButtonsJoint.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        activeQButtonJoint = button;
+                        updateQPillJoint(button);
+                        applyQuantityJoint(button.getAttribute('data-quantity'));
+                    };
+                    button.addEventListener('mousedown', handlePress);
+                    button.addEventListener('touchstart', handlePress, { passive: false });
+                });
+                const applyQuantityJoint = (quantity) => {
+                    const prices = {
+                        '1': 150,
+                        '2': 280,
+                        '3': 380,
+                        '5': 500
+                    };
+                    const images = {
+                        '1': 'https://i.ibb.co/jPpr7YCr/1pre.png',
+                        '2': 'https://i.ibb.co/k6MSZg39/2pre.png',
+                        '3': 'https://i.ibb.co/TBsZ8r3c/3pre.png',
+                        '5': 'https://i.ibb.co/0Rj8KMmJ/5pre.png'
+                    };
+                    document.getElementById('pre-roll-price').textContent = `$${prices[quantity]}`;
+                    document.getElementById('preroll-image').src = images[quantity];
+                };
+                applyQuantityJoint(activeQButtonJoint.getAttribute('data-quantity'));
+                const startQDragJoint = (e) => {
+                    const clientX = (e.type === 'touchstart' ? e.touches[0].clientX : e.clientX);
+                    const rect = quantityContainerJoint.getBoundingClientRect();
+                    const clickX = clientX - rect.left;
+                    const pillLeft = parseFloat(qPillJoint.style.left || 0);
+                    const pillWidth = qPillJoint.offsetWidth;
+                    if (clickX >= pillLeft && clickX <= pillLeft + pillWidth) {
+                        initiateQDragJoint(clientX);
+                        e.preventDefault();
+                    }
+                };
+                const initiateQDragJoint = (clientX) => {
+                    isQDraggingJoint = true;
+                    quantityContainerJoint.classList.add('dragging-mode');
+                    qPillJoint.classList.add('dragging');
+                    qPillJoint.style.transition = 'transform 0.2s ease';
+
+                    // Activar efecto WebGL
+                    if (qPillJointGL) qPillJointGL.activate();
+
+                    qStartXJoint = clientX - parseFloat(qPillJoint.style.left || 0);
+                    document.addEventListener('mousemove', onQDragJoint);
+                    document.addEventListener('touchmove', onQDragJoint, { passive: false });
+                    document.addEventListener('mouseup', endQDragJoint);
+                    document.addEventListener('touchend', endQDragJoint);
+                };
+                const onQDragJoint = (e) => {
+                    if (!isQDraggingJoint) return;
+                    e.preventDefault();
+                    const clientX = (e.type === 'touchmove' ? e.touches[0].clientX : e.clientX);
+                    qCurrentXJoint = clientX - qStartXJoint;
+                    const minLeft = 0;
+                    const maxLeft = quantityContainerJoint.offsetWidth - qPillJoint.offsetWidth;
+                    qPillJoint.style.left = `${Math.max(minLeft, Math.min(qCurrentXJoint, maxLeft))}px`;
+                };
+                const endQDragJoint = (e) => {
+                    if (!isQDraggingJoint) return;
+                    isQDraggingJoint = false;
+                    quantityContainerJoint.classList.remove('dragging-mode');
+                    qPillJoint.classList.remove('dragging');
+                    qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), width 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), transform 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+                    // Desactivar efecto WebGL
+                    if (qPillJointGL) qPillJointGL.deactivate();
+
+                    document.removeEventListener('mousemove', onQDragJoint);
+                    document.removeEventListener('touchmove', onQDragJoint);
+                    document.removeEventListener('mouseup', endQDragJoint);
+                    document.removeEventListener('touchend', endQDragJoint);
+                    let targetButton = null;
+                    const pillCenter = parseFloat(qPillJoint.style.left) + qPillJoint.offsetWidth / 2;
+                    quantityButtonsJoint.forEach(button => {
+                        if (pillCenter >= button.offsetLeft && pillCenter < button.offsetLeft + button.offsetWidth) {
+                            targetButton = button;
+                        }
+                    });
+                    if (targetButton) {
+                        quantityButtonsJoint.forEach(btn => btn.classList.remove('active'));
+                        targetButton.classList.add('active');
+                        activeQButtonJoint = targetButton;
+                        updateQPillJoint(targetButton, true);
+                        applyQuantityJoint(targetButton.getAttribute('data-quantity'));
+                    } else {
+                        updateQPillJoint(activeQButtonJoint, true);
+                    }
+                    setTimeout(() => {
+                        qPillJoint.style.transition = 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease';
+                    }, 300);
+                };
+                quantityContainerJoint.addEventListener('mousedown', startQDragJoint);
+                quantityContainerJoint.addEventListener('touchstart', startQDragJoint, { passive: false });
+
+                // ============================================
+                // SISTEMA WEBGL LIQUID GLASS PARA PÍLDORAS
+                // ============================================
+
+                class GlassPillWebGL {
+                    constructor(canvasId, pillElement, baseColor = [50, 50, 50]) {
+                        this.canvas = document.getElementById(canvasId);
+                        this.pillElement = pillElement;
+                        this.baseColor = baseColor;
+                        this.gl = null;
+                        this.program = null;
+                        this.texture = null;
+                        this.frameCount = 0;
+                        this.isActive = false; // Control para activar solo cuando se arrastra
+
+                        // Parámetros específicos solicitados - ligeramente más agresivos
+                        this.physics = {
+                            refraction: 1.12,   // IOR (ligeramente aumentado)
+                            spread: 0.70,       // Refraction Spread (ligeramente más dispersión)
+                            distortion: 0.115,  // Distortion (ligeramente más deformación)
+                            chromatic: 0.100,   // Chromatic Aberration (ligeramente más aberración)
+                            edge: 0.88          // Edge Intensity (ligeramente más intensidad)
+                        };
+
+                        if (this.canvas) {
+                            this.init();
+                        } else {
+                            console.error('Canvas no encontrado para:', canvasId);
+                        }
+                    }
+
+                    activate() {
+                        this.isActive = true;
+                    }
+
+                    deactivate() {
+                        this.isActive = false;
+                    }
+
+                    init() {
+                        this.initWebGL();
+                        this.setupCanvas();
+                        this.startRender();
+                    }
+
+                    initWebGL() {
+                        this.gl = this.canvas.getContext('webgl', { alpha: true, premultipliedAlpha: false }) ||
+                            this.canvas.getContext('experimental-webgl', { alpha: true, premultipliedAlpha: false });
+                        if (!this.gl) {
+                            console.error('WebGL no disponible para:', this.canvas.id);
+                            return;
+                        }
+
+                        const gl = this.gl;
+
+                        const vertexShaderSource = `
                         attribute vec4 aVertexPosition;
                         attribute vec2 aTextureCoord;
                         varying vec2 vTextureCoord;
@@ -1429,8 +1563,8 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                             vTextureCoord = aTextureCoord;
                         }
                     `;
-                    
-                    const fragmentShaderSource = `
+
+                        const fragmentShaderSource = `
                         precision highp float;
                         varying vec2 vTextureCoord;
                         uniform sampler2D uSampler;
@@ -1546,240 +1680,240 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                             gl_FragColor = vec4(color.rgb, alpha);
                         }
                     `;
-                    
-                    const vertexShader = this.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
-                    const fragmentShader = this.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
-                    
-                    this.program = gl.createProgram();
-                    gl.attachShader(this.program, vertexShader);
-                    gl.attachShader(this.program, fragmentShader);
-                    gl.linkProgram(this.program);
-                    
-                    const positions = [-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0];
-                    const textureCoords = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
-                    
-                    const positionBuffer = gl.createBuffer();
-                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-                    
-                    const textureCoordBuffer = gl.createBuffer();
-                    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-                    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
-                    
-                    gl.useProgram(this.program);
-                    
-                    const positionLocation = gl.getAttribLocation(this.program, 'aVertexPosition');
-                    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-                    gl.enableVertexAttribArray(positionLocation);
-                    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
-                    
-                    const texCoordLocation = gl.getAttribLocation(this.program, 'aTextureCoord');
-                    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-                    gl.enableVertexAttribArray(texCoordLocation);
-                    gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
-                    
-                    gl.enable(gl.BLEND);
-                    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                    
-                    this.texture = gl.createTexture();
-                    gl.bindTexture(gl.TEXTURE_2D, this.texture);
-                    const pixel = new Uint8Array([255, 255, 255, 255]);
-                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-                }
-                
-                setupCanvas() {
-                    if (!this.pillElement || !this.canvas) return;
-                    const rect = this.pillElement.getBoundingClientRect();
-                    const dpr = window.devicePixelRatio || 1;
-                    this.canvas.width = rect.width * dpr;
-                    this.canvas.height = rect.height * dpr;
-                    this.canvas.style.width = rect.width + 'px';
-                    this.canvas.style.height = rect.height + 'px';
-                    
-                    if (this.gl) {
-                        this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+
+                        const vertexShader = this.createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+                        const fragmentShader = this.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+                        this.program = gl.createProgram();
+                        gl.attachShader(this.program, vertexShader);
+                        gl.attachShader(this.program, fragmentShader);
+                        gl.linkProgram(this.program);
+
+                        const positions = [-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0];
+                        const textureCoords = [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+
+                        const positionBuffer = gl.createBuffer();
+                        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+                        const textureCoordBuffer = gl.createBuffer();
+                        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+                        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
+
+                        gl.useProgram(this.program);
+
+                        const positionLocation = gl.getAttribLocation(this.program, 'aVertexPosition');
+                        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+                        gl.enableVertexAttribArray(positionLocation);
+                        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+
+                        const texCoordLocation = gl.getAttribLocation(this.program, 'aTextureCoord');
+                        gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+                        gl.enableVertexAttribArray(texCoordLocation);
+                        gl.vertexAttribPointer(texCoordLocation, 2, gl.FLOAT, false, 0, 0);
+
+                        gl.enable(gl.BLEND);
+                        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+                        this.texture = gl.createTexture();
+                        gl.bindTexture(gl.TEXTURE_2D, this.texture);
+                        const pixel = new Uint8Array([255, 255, 255, 255]);
+                        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
                     }
-                }
-                
-                createShader(gl, type, source) {
-                    const shader = gl.createShader(type);
-                    gl.shaderSource(shader, source);
-                    gl.compileShader(shader);
-                    return shader;
-                }
-                
-                updateTexture() {
-                    if (!this.gl || !this.texture || !this.pillElement) return;
-                    
-                    const rect = this.pillElement.getBoundingClientRect();
-                    const dpr = window.devicePixelRatio || 1;
-                    
-                    const captureCanvas = document.createElement('canvas');
-                    captureCanvas.width = rect.width * dpr;
-                    captureCanvas.height = rect.height * dpr;
-                    const ctx = captureCanvas.getContext('2d');
-                    ctx.scale(dpr, dpr);
-                    
-                    // Fondo del contenedor
-                    const container = this.pillElement.parentElement;
-                    const containerStyle = window.getComputedStyle(container);
-                    ctx.fillStyle = containerStyle.backgroundColor || 'rgba(26, 26, 26, 0.6)';
-                    ctx.fillRect(0, 0, rect.width, rect.height);
-                    
-                    // Capturar el contenido detrás de la píldora
-                    const buttons = container.querySelectorAll('button');
-                    
-                    buttons.forEach(btn => {
-                        const btnRect = btn.getBoundingClientRect();
-                        const relX = btnRect.left - rect.left;
-                        const relY = btnRect.top - rect.top;
-                        
-                        // Solo dibujar si el botón está dentro del área de la píldora
-                        if (relX < rect.width && relX + btnRect.width > 0 && 
-                            relY < rect.height && relY + btnRect.height > 0) {
-                            
-                            // Dibujar imagen del botón si existe
-                            const img = btn.querySelector('img');
-                            if (img && img.complete && img.naturalWidth > 0) {
-                                const imgRect = img.getBoundingClientRect();
-                                const imgX = imgRect.left - rect.left;
-                                const imgY = imgRect.top - rect.top;
-                                try {
-                                    ctx.drawImage(img, imgX, imgY, imgRect.width, imgRect.height);
-                                } catch(e) {
-                                    // Ignorar errores de CORS
+
+                    setupCanvas() {
+                        if (!this.pillElement || !this.canvas) return;
+                        const rect = this.pillElement.getBoundingClientRect();
+                        const dpr = window.devicePixelRatio || 1;
+                        this.canvas.width = rect.width * dpr;
+                        this.canvas.height = rect.height * dpr;
+                        this.canvas.style.width = rect.width + 'px';
+                        this.canvas.style.height = rect.height + 'px';
+
+                        if (this.gl) {
+                            this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+                        }
+                    }
+
+                    createShader(gl, type, source) {
+                        const shader = gl.createShader(type);
+                        gl.shaderSource(shader, source);
+                        gl.compileShader(shader);
+                        return shader;
+                    }
+
+                    updateTexture() {
+                        if (!this.gl || !this.texture || !this.pillElement) return;
+
+                        const rect = this.pillElement.getBoundingClientRect();
+                        const dpr = window.devicePixelRatio || 1;
+
+                        const captureCanvas = document.createElement('canvas');
+                        captureCanvas.width = rect.width * dpr;
+                        captureCanvas.height = rect.height * dpr;
+                        const ctx = captureCanvas.getContext('2d');
+                        ctx.scale(dpr, dpr);
+
+                        // Fondo del contenedor
+                        const container = this.pillElement.parentElement;
+                        const containerStyle = window.getComputedStyle(container);
+                        ctx.fillStyle = containerStyle.backgroundColor || 'rgba(26, 26, 26, 0.6)';
+                        ctx.fillRect(0, 0, rect.width, rect.height);
+
+                        // Capturar el contenido detrás de la píldora
+                        const buttons = container.querySelectorAll('button');
+
+                        buttons.forEach(btn => {
+                            const btnRect = btn.getBoundingClientRect();
+                            const relX = btnRect.left - rect.left;
+                            const relY = btnRect.top - rect.top;
+
+                            // Solo dibujar si el botón está dentro del área de la píldora
+                            if (relX < rect.width && relX + btnRect.width > 0 &&
+                                relY < rect.height && relY + btnRect.height > 0) {
+
+                                // Dibujar imagen del botón si existe
+                                const img = btn.querySelector('img');
+                                if (img && img.complete && img.naturalWidth > 0) {
+                                    const imgRect = img.getBoundingClientRect();
+                                    const imgX = imgRect.left - rect.left;
+                                    const imgY = imgRect.top - rect.top;
+                                    try {
+                                        ctx.drawImage(img, imgX, imgY, imgRect.width, imgRect.height);
+                                    } catch (e) {
+                                        // Ignorar errores de CORS
+                                    }
+                                }
+
+                                // Dibujar texto del botón
+                                const span = btn.querySelector('span');
+                                if (span) {
+                                    const spanRect = span.getBoundingClientRect();
+                                    const spanX = spanRect.left - rect.left;
+                                    const spanY = spanRect.top - rect.top;
+
+                                    const style = window.getComputedStyle(span);
+                                    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+                                    ctx.fillStyle = style.color;
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+                                    ctx.fillText(span.textContent, spanX + spanRect.width / 2, spanY + spanRect.height / 2);
                                 }
                             }
-                            
-                            // Dibujar texto del botón
-                            const span = btn.querySelector('span');
-                            if (span) {
-                                const spanRect = span.getBoundingClientRect();
-                                const spanX = spanRect.left - rect.left;
-                                const spanY = spanRect.top - rect.top;
-                                
-                                const style = window.getComputedStyle(span);
-                                ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-                                ctx.fillStyle = style.color;
-                                ctx.textAlign = 'center';
-                                ctx.textBaseline = 'middle';
-                                ctx.fillText(span.textContent, spanX + spanRect.width / 2, spanY + spanRect.height / 2);
-                            }
-                        }
-                    });
-                    
-                    this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-                    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, captureCanvas);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
-                    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
-                }
-                
-                render() {
-                    if (!this.gl || !this.program) {
-                        if (this.frameCount === 0) {
-                            console.error('No se puede renderizar - GL o Program no disponible para:', this.canvas ? this.canvas.id : 'unknown');
-                        }
-                        return;
+                        });
+
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+                        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, captureCanvas);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+                        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
                     }
-                    
-                    // Solo renderizar el efecto cuando está activo (arrastrando)
-                    if (!this.isActive) {
+
+                    render() {
+                        if (!this.gl || !this.program) {
+                            if (this.frameCount === 0) {
+                                console.error('No se puede renderizar - GL o Program no disponible para:', this.canvas ? this.canvas.id : 'unknown');
+                            }
+                            return;
+                        }
+
+                        // Solo renderizar el efecto cuando está activo (arrastrando)
+                        if (!this.isActive) {
+                            this.gl.clearColor(0, 0, 0, 0);
+                            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+                            this.frameCount++;
+                            return;
+                        }
+
+                        // Actualizar textura cada frame para mejor efecto
+                        this.updateTexture();
+
                         this.gl.clearColor(0, 0, 0, 0);
                         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uTime'), Date.now() * 0.001);
+                        this.gl.uniform2f(this.gl.getUniformLocation(this.program, 'uResolution'), this.canvas.width, this.canvas.height);
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uIOR'), this.physics.refraction);
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uSpread'), this.physics.spread);
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uDistortion'), this.physics.distortion);
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uChromatic'), this.physics.chromatic);
+                        this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uEdge'), this.physics.edge);
+                        this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uBaseColor'),
+                            this.baseColor[0], this.baseColor[1], this.baseColor[2]);
+
+                        this.gl.activeTexture(this.gl.TEXTURE0);
+                        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+                        this.gl.uniform1i(this.gl.getUniformLocation(this.program, 'uSampler'), 0);
+
+                        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
                         this.frameCount++;
-                        return;
                     }
-                    
-                    // Actualizar textura cada frame para mejor efecto
-                    this.updateTexture();
-                    
-                    this.gl.clearColor(0, 0, 0, 0);
-                    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-                    
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uTime'), Date.now() * 0.001);
-                    this.gl.uniform2f(this.gl.getUniformLocation(this.program, 'uResolution'), this.canvas.width, this.canvas.height);
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uIOR'), this.physics.refraction);
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uSpread'), this.physics.spread);
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uDistortion'), this.physics.distortion);
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uChromatic'), this.physics.chromatic);
-                    this.gl.uniform1f(this.gl.getUniformLocation(this.program, 'uEdge'), this.physics.edge);
-                    this.gl.uniform3f(this.gl.getUniformLocation(this.program, 'uBaseColor'), 
-                                     this.baseColor[0], this.baseColor[1], this.baseColor[2]);
-                    
-                    this.gl.activeTexture(this.gl.TEXTURE0);
-                    this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-                    this.gl.uniform1i(this.gl.getUniformLocation(this.program, 'uSampler'), 0);
-                    
-                    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-                    
-                    this.frameCount++;
+
+                    startRender() {
+                        const renderFrame = () => {
+                            this.render();
+                            requestAnimationFrame(renderFrame);
+                        };
+                        renderFrame();
+                    }
+
+                    updateSize() {
+                        this.setupCanvas();
+                    }
                 }
-                
-                startRender() {
-                    const renderFrame = () => {
-                        this.render();
-                        requestAnimationFrame(renderFrame);
-                    };
-                    renderFrame();
-                }
-                
-                updateSize() {
-                    this.setupCanvas();
-                }
-            }
-            
-            // Inicializar píldoras WebGL después de que los elementos estén listos
-            let filterPillGL, qPillFlorGL, qPillJointGL;
-            
-            setTimeout(() => {
-                const filterPillElement = document.getElementById('filter-pill');
-                const filterPillCanvas = document.getElementById('filter-pill-canvas');
-                if (filterPillElement && filterPillCanvas) {
-                    filterPillGL = new GlassPillWebGL('filter-pill-canvas', filterPillElement, [35, 35, 35]);
-                }
-                
-                const qPillFlorElement = document.getElementById('quantity-pill-flor');
-                const qPillFlorCanvas = document.getElementById('quantity-pill-flor-canvas');
-                if (qPillFlorElement && qPillFlorCanvas) {
-                    qPillFlorGL = new GlassPillWebGL('quantity-pill-flor-canvas', qPillFlorElement, [220, 38, 38]);
-                }
-                
-                const qPillJointElement = document.getElementById('quantity-pill-joint');
-                const qPillJointCanvas = document.getElementById('quantity-pill-joint-canvas');
-                if (qPillJointElement && qPillJointCanvas) {
-                    qPillJointGL = new GlassPillWebGL('quantity-pill-joint-canvas', qPillJointElement, [220, 38, 38]);
-                }
-            }, 100);
-            
-            // Actualizar tamaño de canvas cuando cambie el tamaño de las píldoras
-            const originalUpdatePill = updatePill;
-            updatePill = (button, animate = true) => {
-                originalUpdatePill(button, animate);
+
+                // Inicializar píldoras WebGL después de que los elementos estén listos
+                let filterPillGL, qPillFlorGL, qPillJointGL;
+
                 setTimeout(() => {
-                    if (filterPillGL) filterPillGL.updateSize();
-                }, 50);
-            };
-            
-            const originalUpdateQPillFlor = updateQPillFlor;
-            updateQPillFlor = (button, animate = true) => {
-                originalUpdateQPillFlor(button, animate);
+                    const filterPillElement = document.getElementById('filter-pill');
+                    const filterPillCanvas = document.getElementById('filter-pill-canvas');
+                    if (filterPillElement && filterPillCanvas) {
+                        filterPillGL = new GlassPillWebGL('filter-pill-canvas', filterPillElement, [35, 35, 35]);
+                    }
+
+                    const qPillFlorElement = document.getElementById('quantity-pill-flor');
+                    const qPillFlorCanvas = document.getElementById('quantity-pill-flor-canvas');
+                    if (qPillFlorElement && qPillFlorCanvas) {
+                        qPillFlorGL = new GlassPillWebGL('quantity-pill-flor-canvas', qPillFlorElement, [220, 38, 38]);
+                    }
+
+                    const qPillJointElement = document.getElementById('quantity-pill-joint');
+                    const qPillJointCanvas = document.getElementById('quantity-pill-joint-canvas');
+                    if (qPillJointElement && qPillJointCanvas) {
+                        qPillJointGL = new GlassPillWebGL('quantity-pill-joint-canvas', qPillJointElement, [220, 38, 38]);
+                    }
+                }, 100);
+
+                // Actualizar tamaño de canvas cuando cambie el tamaño de las píldoras
+                const originalUpdatePill = updatePill;
+                updatePill = (button, animate = true) => {
+                    originalUpdatePill(button, animate);
                     setTimeout(() => {
-                    if (qPillFlorGL) qPillFlorGL.updateSize();
-                }, 50);
+                        if (filterPillGL) filterPillGL.updateSize();
+                    }, 50);
+                };
+
+                const originalUpdateQPillFlor = updateQPillFlor;
+                updateQPillFlor = (button, animate = true) => {
+                    originalUpdateQPillFlor(button, animate);
+                    setTimeout(() => {
+                        if (qPillFlorGL) qPillFlorGL.updateSize();
+                    }, 50);
+                };
+
+                const originalUpdateQPillJoint = updateQPillJoint;
+                updateQPillJoint = (button, animate = true) => {
+                    originalUpdateQPillJoint(button, animate);
+                    setTimeout(() => {
+                        if (qPillJointGL) qPillJointGL.updateSize();
+                    }, 50);
+                };
+
             };
-            
-            const originalUpdateQPillJoint = updateQPillJoint;
-            updateQPillJoint = (button, animate = true) => {
-                originalUpdateQPillJoint(button, animate);
-                setTimeout(() => {
-                    if (qPillJointGL) qPillJointGL.updateSize();
-                }, 50);
-            };
-            
-            };
-            
+
             // Ejecutar inmediatamente si el DOM ya está listo
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initScripts);
@@ -1787,7 +1921,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 initScripts();
             }
         }
-        
+
         // Cargar scripts pesados (WebGL, logo drag) solo cuando el navegador esté inactivo
         if (window.requestIdleCallback) {
             requestIdleCallback(loadHeavyScripts, { timeout: 3000 });
@@ -1795,7 +1929,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             // Fallback para navegadores sin requestIdleCallback
             setTimeout(loadHeavyScripts, 100);
         }
-        
+
         // ============================================
         // LOGO INTERACTIVO - ARRASTRAR Y REBOTAR
         // ============================================
@@ -1805,7 +1939,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 setTimeout(initLogoDrag, 100);
                 return;
             }
-            
+
             let dragging = false;
             let startX = 0;
             let startY = 0;
@@ -1817,20 +1951,20 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             let lastY = 0;
             let lastTime = 0;
             let animationId = null;
-            
+
             // Constantes de física
             const FRICTION = 0.94; // Fricción (desaceleración) - aumentada para menos recorrido
             const GRAVITY = 0.022; // Gravedad hacia la posición original - aumentada para regreso más rápido
             const MAX_VELOCITY = 30; // Velocidad máxima - reducida para menos recorrido
             const RETURN_SPEED = 0.012; // Velocidad de regreso a posición original - solo afecta fase final
             const VELOCITY_MULTIPLIER = 1.3; // Multiplicador de velocidad al soltar - reducido para menos recorrido
-            
+
             // Prevenir arrastre nativo
             logo.setAttribute('draggable', 'false');
             logo.ondragstart = () => false;
             logo.onselectstart = () => false;
             logo.oncontextmenu = () => false;
-            
+
             // Obtener coordenadas del evento
             function getCoords(e) {
                 if (e.touches && e.touches[0]) {
@@ -1838,7 +1972,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 }
                 return { x: e.clientX, y: e.clientY };
             }
-            
+
             // Obtener posición actual del logo
             function getCurrentPosition() {
                 const header = logo.parentElement;
@@ -1846,27 +1980,27 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 const rect = logo.getBoundingClientRect();
                 const headerCenterX = headerRect.left + headerRect.width / 2;
                 const headerCenterY = headerRect.top + headerRect.height / 2;
-                
+
                 return {
                     x: rect.left + rect.width / 2 - headerCenterX,
                     y: rect.top + rect.height / 2 - headerCenterY
                 };
             }
-            
+
             // Aplicar transformación
             function applyTransform(x, y) {
                 logo.style.transform = `translateX(calc(-50% + ${x}px)) translateY(calc(-0.5rem + ${y}px))`;
             }
-            
+
             // Animación de física
             function animate() {
                 // Calcular distancia desde el origen
                 const distance = Math.sqrt(currentX * currentX + currentY * currentY);
-                
+
                 // Aplicar fricción
                 velocityX *= FRICTION;
                 velocityY *= FRICTION;
-                
+
                 // Aplicar amortiguación adicional cuando está cerca del origen para evitar rebotes
                 if (distance < 12) {
                     // Amortiguación más agresiva cuando está más cerca para eliminar rebote gravitacional
@@ -1874,7 +2008,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                     velocityX *= dampingFactor;
                     velocityY *= dampingFactor;
                 }
-                
+
                 // Aplicar gravedad hacia la posición original (0, 0)
                 // Reducir gravedad cuando está cerca para evitar rebotes gravitacionales
                 let effectiveGravity = GRAVITY;
@@ -1883,33 +2017,33 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                     const factor = Math.pow(distance / 20, 1.5);
                     effectiveGravity = GRAVITY * factor;
                 }
-                
+
                 // Solo aplicar gravedad si se está moviendo hacia el origen o está casi quieto
                 // Esto previene rebote gravitacional
                 const directionToOriginX = -currentX;
                 const directionToOriginY = -currentY;
                 const dotProduct = velocityX * directionToOriginX + velocityY * directionToOriginY;
-                
+
                 // Si se está moviendo hacia el origen o está casi quieto, aplicar gravedad
                 if (dotProduct >= 0 || distance < 8) {
                     const gravityX = directionToOriginX * effectiveGravity;
                     const gravityY = directionToOriginY * effectiveGravity;
-                    
+
                     velocityX += gravityX;
                     velocityY += gravityY;
                 }
-                
+
                 // Limitar velocidad máxima
                 const speed = Math.sqrt(velocityX * velocityX + velocityY * velocityY);
                 if (speed > MAX_VELOCITY) {
                     velocityX = (velocityX / speed) * MAX_VELOCITY;
                     velocityY = (velocityY / speed) * MAX_VELOCITY;
                 }
-                
+
                 // Actualizar posición
                 currentX += velocityX;
                 currentY += velocityY;
-                
+
                 // Si está muy cerca del origen y la velocidad es baja, detener completamente sin rebote
                 if (distance < 3 && speed < 0.4) {
                     currentX = 0;
@@ -1922,7 +2056,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                     applyTransform(0, 0);
                     return;
                 }
-                
+
                 // Si la velocidad es muy baja, regresar suavemente a la posición original
                 if (Math.abs(velocityX) < 0.015 && Math.abs(velocityY) < 0.015) {
                     if (distance > 0.8) {
@@ -1942,142 +2076,142 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         return;
                     }
                 }
-                
+
                 // Aplicar transformación
                 applyTransform(currentX, currentY);
-                
+
                 // Continuar animación
                 animationId = requestAnimationFrame(animate);
             }
-            
+
             // Iniciar arrastre
             function onStart(e) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                
+
                 // Detener animación inicial si está corriendo
                 if (initialAnimationId) {
                     cancelAnimationFrame(initialAnimationId);
                     initialAnimationId = null;
                     logo.style.pointerEvents = 'auto'; // Rehabilitar interacción
                 }
-                
+
                 // Detener animación física si está corriendo
                 if (animationId) {
                     cancelAnimationFrame(animationId);
                     animationId = null;
                 }
-                
+
                 dragging = true;
                 logo.style.cursor = 'grabbing';
                 logo.style.transition = 'none';
-                
+
                 const coords = getCoords(e);
                 const rect = logo.getBoundingClientRect();
                 const header = logo.parentElement;
                 const headerRect = header.getBoundingClientRect();
-                
+
                 // Obtener posición actual
                 const pos = getCurrentPosition();
                 currentX = pos.x;
                 currentY = pos.y;
-                
+
                 // Resetear velocidad
                 velocityX = 0;
                 velocityY = 0;
                 lastX = coords.x;
                 lastY = coords.y;
                 lastTime = Date.now();
-                
+
                 // Offset del click/touch desde el centro
                 startX = coords.x - (rect.left + rect.width / 2);
                 startY = coords.y - (rect.top + rect.height / 2);
-                
+
                 // Agregar listeners
                 document.addEventListener('mousemove', onMove, { passive: false, capture: true });
                 document.addEventListener('touchmove', onMove, { passive: false, capture: true });
                 document.addEventListener('mouseup', onEnd, { capture: true });
                 document.addEventListener('touchend', onEnd, { capture: true });
                 // No usar mouseleave para evitar que se suelte accidentalmente
-                
+
                 return false;
             }
-            
+
             // Mover durante arrastre
             function onMove(e) {
                 if (!dragging) return;
-                
+
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                
+
                 const coords = getCoords(e);
                 const header = logo.parentElement;
                 const headerRect = header.getBoundingClientRect();
-                
+
                 // Calcular nueva posición del centro
                 const newCenterX = coords.x - startX;
                 const newCenterY = coords.y - startY;
-                
+
                 // Calcular delta desde posición original
                 const headerCenterX = headerRect.left + headerRect.width / 2;
                 const headerCenterY = headerRect.top + headerRect.height / 2;
-                
+
                 currentX = newCenterX - headerCenterX;
                 currentY = newCenterY - headerCenterY;
-                
+
                 // Calcular velocidad basada en el movimiento
                 const now = Date.now();
                 const deltaTime = Math.max(1, now - lastTime);
                 const deltaX = coords.x - lastX;
                 const deltaY = coords.y - lastY;
-                
+
                 // Velocidad en píxeles por milisegundo, convertida a píxeles por frame (60fps)
                 velocityX = (deltaX / deltaTime) * 16.67;
                 velocityY = (deltaY / deltaTime) * 16.67;
-                
+
                 lastX = coords.x;
                 lastY = coords.y;
                 lastTime = now;
-                
+
                 // Aplicar transform
                 applyTransform(currentX, currentY);
-                
+
                 return false;
             }
-            
+
             // Finalizar arrastre
             function onEnd(e) {
                 if (!dragging) return;
-                
+
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                
+
                 dragging = false;
                 logo.style.cursor = 'grab';
                 logo.style.transition = 'none';
-                
+
                 // Aplicar multiplicador de velocidad para más recorrido
                 velocityX *= VELOCITY_MULTIPLIER;
                 velocityY *= VELOCITY_MULTIPLIER;
-                
+
                 // Remover listeners
                 document.removeEventListener('mousemove', onMove, { capture: true });
                 document.removeEventListener('touchmove', onMove, { capture: true });
                 document.removeEventListener('mouseup', onEnd, { capture: true });
                 document.removeEventListener('touchend', onEnd, { capture: true });
-                
+
                 // Iniciar animación de física
                 if (!animationId) {
                     animationId = requestAnimationFrame(animate);
                 }
-                
+
                 return false;
             }
-            
+
             // Agregar listeners iniciales
             logo.addEventListener('mousedown', onStart, { passive: false, capture: true });
             logo.addEventListener('touchstart', onStart, { passive: false, capture: true });
-            
+
             // ============================================
             // ANIMACIÓN INICIAL - MOVIMIENTO EN FORMA DE INFINITO
             // ============================================
@@ -2087,16 +2221,16 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             const INFINITY_AMPLITUDE_X = 80; // Amplitud horizontal del infinito
             const INFINITY_AMPLITUDE_Y = 30; // Amplitud vertical del infinito
             const VERTICAL_AMPLITUDE = 15; // Amplitud del movimiento vertical adicional
-            
+
             function startInitialAnimation() {
                 initialAnimationStartTime = Date.now();
                 logo.style.transition = 'none';
                 // Mantener interacción habilitada para poder interrumpir la animación
-                
+
                 function animateInfinity() {
                     const elapsed = Date.now() - initialAnimationStartTime;
                     const progress = elapsed / INITIAL_ANIMATION_DURATION;
-                    
+
                     if (progress >= 1) {
                         // Animación terminada, regresar a posición original de forma muy suave y elegante
                         currentX = 0;
@@ -2109,7 +2243,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         initialAnimationId = null;
                         return;
                     }
-                    
+
                     // Desaceleración gradual en los últimos 5 segundos (progress > 0.75)
                     let decelerationFactor = 1.0;
                     if (progress > 0.75) {
@@ -2118,35 +2252,35 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         // Curva suave de desaceleración (ease-out)
                         decelerationFactor = 1 - Math.pow(decelerationProgress, 2);
                     }
-                    
+
                     // Movimiento en forma de infinito (∞)
                     // x(t) = sin(t) para el movimiento horizontal
                     // y(t) = sin(2*t) / 2 para crear la forma de infinito
                     const t = progress * Math.PI * 6; // 3 ciclos completos del infinito en 15 segundos
                     const infinityX = Math.sin(t) * INFINITY_AMPLITUDE_X;
                     const infinityY = (Math.sin(2 * t) / 2) * INFINITY_AMPLITUDE_Y;
-                    
+
                     // Movimiento vertical adicional (ligero)
                     const verticalY = Math.sin(t * 1.5) * VERTICAL_AMPLITUDE;
-                    
+
                     // Aplicar factor de desaceleración al movimiento
                     const finalX = infinityX * decelerationFactor;
                     const finalY = (infinityY + verticalY) * decelerationFactor;
-                    
+
                     applyTransform(finalX, finalY);
-                    
+
                     initialAnimationId = requestAnimationFrame(animateInfinity);
                 }
-                
+
                 initialAnimationId = requestAnimationFrame(animateInfinity);
             }
-            
+
             // Iniciar animación después de un pequeño delay para asegurar que el logo esté visible
             setTimeout(() => {
                 startInitialAnimation();
             }, 300);
         }
-        
+
         // Inicializar logo drag de forma diferida (no crítico para carga inicial)
         if (window.requestIdleCallback) {
             requestIdleCallback(() => {
@@ -2168,7 +2302,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         function initLaNaveTextEffect() {
             const laNaveText = document.getElementById('la-nave-text');
             const contentOverlay = document.getElementById('content-overlay');
-            
+
             if (!laNaveText || !contentOverlay) return;
 
             // Función para ajustar el tamaño del texto para que ocupe TODO el ancho disponible
@@ -2180,10 +2314,10 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
                 const paddingRight = parseFloat(computedStyle.paddingRight) || 0;
                 const availableWidth = window.innerWidth - paddingLeft - paddingRight;
-                
+
                 // Obtener el letter-spacing en em
                 const letterSpacingEm = parseFloat(computedStyle.letterSpacing) || 0;
-                
+
                 // Crear elemento temporal para medir con los mismos estilos exactos
                 const measureElement = document.createElement('span');
                 measureElement.style.visibility = 'hidden';
@@ -2196,30 +2330,30 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 measureElement.style.fontSize = '100px'; // Tamaño base para medir
                 measureElement.textContent = 'LA NAVE';
                 document.body.appendChild(measureElement);
-                
+
                 // Obtener el ancho del texto con tamaño base de 100px
                 const baseWidth = measureElement.offsetWidth;
                 const baseFontSize = 100;
-                
+
                 // Calcular el tamaño de fuente necesario usando proporción directa
                 // Proporción: fontSize / baseFontSize = availableWidth / baseWidth
                 let fontSize = (availableWidth / baseWidth) * baseFontSize;
-                
+
                 // Aplicar el tamaño calculado y verificar
                 measureElement.style.fontSize = fontSize + 'px';
                 measureElement.style.letterSpacing = (fontSize * letterSpacingEm) + 'px';
-                
+
                 // Forzar reflow
                 void measureElement.offsetWidth;
-                
+
                 let actualWidth = measureElement.offsetWidth;
-                
+
                 // Ajustar finamente usando búsqueda binaria
                 let minFontSize = 10;
                 let maxFontSize = fontSize * 2; // Empezar con un rango razonable
                 let bestFontSize = fontSize;
                 const tolerance = 0.01;
-                
+
                 // Si el texto se sale, reducir el rango máximo
                 if (actualWidth > availableWidth) {
                     maxFontSize = fontSize;
@@ -2229,18 +2363,18 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                     minFontSize = fontSize;
                     maxFontSize = fontSize * 2;
                 }
-                
+
                 // Búsqueda binaria iterativa para encontrar el tamaño exacto
                 for (let i = 0; i < 200; i++) {
                     const testFontSize = (minFontSize + maxFontSize) / 2;
                     measureElement.style.fontSize = testFontSize + 'px';
                     measureElement.style.letterSpacing = (testFontSize * letterSpacingEm) + 'px';
-                    
+
                     // Forzar reflow
                     void measureElement.offsetWidth;
-                    
+
                     const textWidth = measureElement.offsetWidth;
-                    
+
                     if (textWidth <= availableWidth) {
                         // El texto cabe, podemos intentar un tamaño mayor
                         bestFontSize = testFontSize;
@@ -2249,43 +2383,43 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         // El texto se sale, necesitamos un tamaño menor
                         maxFontSize = testFontSize;
                     }
-                    
+
                     // Si la diferencia es muy pequeña, salir
                     if (maxFontSize - minFontSize < tolerance) {
                         break;
                     }
                 }
-                
+
                 // Aplicar el tamaño encontrado - hacer el texto más grande pero siempre dentro de la ventana
                 // Usar un margen de seguridad más conservador para asegurar que nunca se salga
                 // En móvil (<=768px) usar 92%, en tabletas (769-1024px) usar 88%, en escritorio (>1024px) usar 99%
                 const width = window.innerWidth;
                 let safetyMargin;
                 if (width <= 768) {
-                    safetyMargin = 0.92; // Móvil - más grande
+                    safetyMargin = 0.90; // Móvil - más grande
                 } else if (width <= 1024) {
-                    safetyMargin = 0.88; // Tabletas
+                    safetyMargin = 0.86; // Tabletas
                 } else {
-                    safetyMargin = 0.99; // Escritorio - máximo tamaño para abarcar todo el ancho de la ventana
+                    safetyMargin = 0.97; // Escritorio - máximo tamaño para abarcar todo el ancho de la ventana
                 }
                 laNaveText.style.fontSize = (bestFontSize * safetyMargin) + 'px';
-                
+
                 // Asegurar que el texto nunca se salga usando max-width y overflow
                 laNaveText.style.maxWidth = '100vw';
                 laNaveText.style.overflow = 'hidden';
-                
+
                 // Asegurar que el texto esté perfectamente centrado y no se salga
                 // El texto ya tiene position: fixed, left: 0, width: 100% y text-align: center en el HTML
                 // Solo necesitamos asegurar que no haya transformaciones que lo desplacen
                 // El transform se maneja en el efecto de aplastamiento, así que no lo tocamos aquí
-                
+
                 // Limpiar
                 document.body.removeChild(measureElement);
             };
-            
+
             // Ajustar el tamaño inicial
             adjustTextSize();
-            
+
             // Ajustar el tamaño cuando cambia el tamaño de la ventana (optimizado con RAF)
             let resizeRaf = null;
             window.addEventListener('resize', () => {
@@ -2306,12 +2440,12 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                         const textTop = laNaveRect.top;
                         const textBottom = laNaveRect.bottom;
                         const textHeight = textBottom - textTop;
-                        
+
                         // Obtener posición de todo el content-overlay
                         const overlayRect = contentOverlay.getBoundingClientRect();
                         const overlayTop = overlayRect.top; // Parte superior del overlay
                         const overlayBottom = overlayRect.bottom; // Parte inferior del overlay
-                        
+
                         // Solo aplicar efecto cuando el contenido está realmente pasando por encima del texto
                         // El contenido pasa por encima cuando overlayTop < textBottom
                         if (overlayTop < textBottom && overlayBottom > textTop) {
@@ -2320,45 +2454,45 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                             const overlapTop = Math.max(overlayTop, textTop);
                             const overlapBottom = Math.min(overlayBottom, textBottom);
                             const overlapHeight = Math.max(0, overlapBottom - overlapTop);
-                            
+
                             // El factor de aplastamiento es proporcional a cuánto del texto está cubierto
                             // desde abajo hacia arriba (cuando el contenido entra por la parte inferior)
                             // Calculamos desde qué punto del texto (desde abajo) está siendo cubierto
                             const distanceFromBottom = textBottom - overlayTop;
-                            
+
                             // El aplastamiento comienza cuando el contenido toca la parte inferior del texto
                             // y aumenta a medida que el contenido sube dentro del texto
                             // squashFactor va de 0 (contenido apenas toca la parte inferior) a 1 (contenido cubre todo el texto)
                             const squashFactor = Math.min(1, Math.max(0, distanceFromBottom / textHeight));
-                            
+
                             // Calcular la escala: cuando squashFactor = 1, scaleY = 0 (completamente aplastado)
                             const scaleY = 1 - squashFactor;
-                            
+
                             // Opacidad: desaparece cuando está completamente aplastado
                             // Comenzar a desaparecer cuando está 70% aplastado
                             let opacity = 1;
                             if (squashFactor > 0.7) {
                                 opacity = 1 - ((squashFactor - 0.7) / 0.3); // De 1 a 0 en el último 30%
                             }
-                            
+
                             // Para que SOLO se comprima desde abajo sin afectar la parte superior:
                             // NO usamos scaleY porque comprime todo el elemento y mueve la parte superior
                             // En su lugar, usamos clip-path para recortar desde abajo progresivamente
                             // Esto simula el efecto de que el contenido está "aplastando" el texto desde abajo
-                            
+
                             // Calcular el porcentaje a recortar desde abajo
                             // Cuando squashFactor = 0, no recortamos nada (0%)
                             // Cuando squashFactor = 1, recortamos todo desde abajo (100%)
                             const clipBottom = squashFactor * 100;
-                            
+
                             // Usar clip-path para recortar desde abajo
                             // inset(top right bottom left) - recortamos desde abajo
                             // Esto hace que el texto desaparezca desde abajo, manteniendo la parte superior fija
                             laNaveText.style.clipPath = `inset(0 0 ${clipBottom}% 0)`;
-                            
+
                             // NO usar transform para evitar que se comprima desde arriba
                             laNaveText.style.transform = 'none';
-                            
+
                             laNaveText.style.opacity = opacity;
                         } else {
                             // El contenido no está pasando por encima, mantener estado normal
@@ -2366,21 +2500,21 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                             laNaveText.style.transform = 'none';
                             laNaveText.style.opacity = '1';
                         }
-                        
+
                         ticking = false;
                     });
-                    
+
                     ticking = true;
                 }
             };
 
             // Escuchar eventos de scroll
             window.addEventListener('scroll', handleScroll, { passive: true });
-            
+
             // Ejecutar una vez al cargar para establecer el estado inicial
             handleScroll();
         }
-        
+
         // Cargar efecto de texto "LA NAVE" de forma diferida
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -2399,6 +2533,7 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
         }
 
         // Cargar efecto de imagen final de forma diferida
+        // Cargar efecto de imagen final de forma diferida
         function initFinalImageEffect() {
             const finalSection = document.getElementById('final-image-section');
             if (!finalSection) return;
@@ -2406,45 +2541,48 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
             const finalImage = finalSection.querySelector('img');
             if (!finalImage) return;
 
-            const MIN_PROGRESS = 0.1;
-            let fullHeight = 0;
+            let maxHeight = 0;
+            const minHeight = 50; // Altura inicial muy comprimida
             let scrollRaf = null;
             let resizeRaf = null;
 
-            const clamp = (value, min = 0, max = 1) => Math.min(Math.max(value, min), max);
-
-            const applyProgress = (progress) => {
-                finalSection.style.setProperty('--final-img-progress', progress.toFixed(4));
-            };
-
-            const updateProgress = () => {
-                if (!fullHeight) return;
+            const updateHeight = () => {
+                if (!maxHeight) return;
 
                 const rect = finalSection.getBoundingClientRect();
-                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
-                const targetTop = Math.max(viewportHeight - fullHeight, 0);
-                const distance = Math.max(viewportHeight - targetTop, 1);
-                const raw = 1 - clamp((rect.top - targetTop) / distance, 0, 1);
-                const eased = MIN_PROGRESS + (1 - MIN_PROGRESS) * raw;
-                applyProgress(eased);
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+                // Lógica "Pin to Bottom":
+                // Queremos que el bottom de la imagen coincida con el bottom del viewport (o más abajo).
+                // La distancia desde el top de la imagen hasta el bottom del viewport es: viewportHeight - rect.top
+                // Esa es la altura "disponible" visible.
+                // Hacemos que la altura de la imagen sea exactamente esa distancia, 
+                // clampeada entre minHeight y maxHeight.
+
+                // Esto hace que visualmente la parte inferior de la imagen parezca "pegada" al borde inferior
+                // de la pantalla mientras scrolleas hacia ella, creando el efecto de descompresión.
+
+                const availableHeight = viewportHeight - rect.top;
+                const targetHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
+
+                finalSection.style.height = `${targetHeight}px`;
             };
 
-            const updateFullHeight = () => {
+            const updateDimensions = () => {
                 if (!finalImage.naturalWidth || !finalImage.naturalHeight) return;
-                const width = finalSection.clientWidth || finalImage.clientWidth || window.innerWidth;
-                if (!width) return;
+                const width = finalSection.clientWidth || window.innerWidth;
 
-                fullHeight = width * (finalImage.naturalHeight / finalImage.naturalWidth);
-                finalSection.style.setProperty('--final-img-full-height', `${fullHeight}px`);
-                applyProgress(MIN_PROGRESS);
-                updateProgress();
+                // Calcular altura natural basada en el aspect ratio
+                maxHeight = width * (finalImage.naturalHeight / finalImage.naturalWidth);
+
+                updateHeight();
             };
 
             const handleScroll = () => {
                 if (scrollRaf) return;
                 scrollRaf = window.requestAnimationFrame(() => {
                     scrollRaf = null;
-                    updateProgress();
+                    updateHeight();
                 });
             };
 
@@ -2454,23 +2592,23 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
                 }
                 resizeRaf = window.requestAnimationFrame(() => {
                     resizeRaf = null;
-                    updateFullHeight();
+                    updateDimensions();
                 });
             };
 
             if (finalImage.complete) {
-                updateFullHeight();
+                updateDimensions();
             } else {
-                finalImage.addEventListener('load', updateFullHeight);
+                finalImage.addEventListener('load', updateDimensions);
             }
 
             window.addEventListener('scroll', handleScroll, { passive: true });
             window.addEventListener('resize', handleResize, { passive: true });
 
-            // Ajuste inicial por si el usuario ya está cerca del final al cargar
-            updateProgress();
+            // Ajuste inicial
+            updateDimensions();
         }
-        
+
         // Cargar efecto de imagen final de forma diferida
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -2493,9 +2631,10 @@ sin render blocking, sin cadenas de solicitudes críticas, y mejor performance g
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WZKWET33RK"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
+        function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'G-WZKWET33RK');
     </script>
 </body>
+
 </html>
