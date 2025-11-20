@@ -1,3 +1,9 @@
+// Force scroll to top and disable restoration
+if (history.scrollRestoration) {
+    history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
+
 // Precargar imágenes de preroll para cambio instantáneo
 function preloadPrerollImages() {
     const prerollImages = [
@@ -966,13 +972,13 @@ function initFiltersAndWebGL() {
         const qPillFlorElement = document.getElementById('quantity-pill-flor');
         const qPillFlorCanvas = document.getElementById('quantity-pill-flor-canvas');
         if (qPillFlorElement && qPillFlorCanvas) {
-            qPillFlorGL = new GlassPillWebGL('quantity-pill-flor-canvas', qPillFlorElement, [220, 38, 38]);
+            qPillFlorGL = new GlassPillWebGL('quantity-pill-flor-canvas', qPillFlorElement, [255, 60, 0]);
         }
 
         const qPillJointElement = document.getElementById('quantity-pill-joint');
         const qPillJointCanvas = document.getElementById('quantity-pill-joint-canvas');
         if (qPillJointElement && qPillJointCanvas) {
-            qPillJointGL = new GlassPillWebGL('quantity-pill-joint-canvas', qPillJointElement, [220, 38, 38]);
+            qPillJointGL = new GlassPillWebGL('quantity-pill-joint-canvas', qPillJointElement, [255, 60, 0]);
         }
     }, 100);
 
@@ -1029,6 +1035,10 @@ function initLogoDrag() {
     const RETURN_SPEED = 0.012; // Velocidad de regreso a posición original - solo afecta fase final
     const VELOCITY_MULTIPLIER = 1.3; // Multiplicador de velocidad al soltar - reducido para menos recorrido
 
+    // Posición de reposo (offset del centro)
+    const RESTING_X = -80; // Más a la izquierda
+    const RESTING_Y = 15;  // Más arriba
+
     // Prevenir arrastre nativo
     logo.setAttribute('draggable', 'false');
     logo.ondragstart = () => false;
@@ -1058,14 +1068,16 @@ function initLogoDrag() {
     }
 
     // Aplicar transformación
-    function applyTransform(x, y) {
-        logo.style.transform = `translateX(calc(-50% + ${x}px)) translateY(calc(-0.5rem + ${y}px))`;
+    function applyTransform(x, y, rotation = 0) {
+        logo.style.transform = `translateX(calc(-50% + ${x}px)) translateY(calc(-50% + ${y}px)) rotate(${rotation}deg)`;
     }
 
     // Animación de física
     function animate() {
-        // Calcular distancia desde el origen
-        const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+        // Calcular distancia desde la posición de reposo
+        const dx = currentX - RESTING_X;
+        const dy = currentY - RESTING_Y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
         // Aplicar fricción
         velocityX *= FRICTION;
@@ -1088,19 +1100,23 @@ function initLogoDrag() {
             effectiveGravity = GRAVITY * factor;
         }
 
-        // Solo aplicar gravedad si se está moviendo hacia el origen o está casi quieto
+        // Solo aplicar gravedad si se está moviendo hacia la posición de reposo o está casi quieto
         // Esto previene rebote gravitacional
-        const directionToOriginX = -currentX;
-        const directionToOriginY = -currentY;
-        const dotProduct = velocityX * directionToOriginX + velocityY * directionToOriginY;
+        const directionToRestX = RESTING_X - currentX;
+        const directionToRestY = RESTING_Y - currentY;
+        const dotProduct = velocityX * directionToRestX + velocityY * directionToRestY;
 
-        // Si se está moviendo hacia el origen o está casi quieto, aplicar gravedad
+        // Si se está moviendo hacia el reposo o está casi quieto, aplicar gravedad
         if (dotProduct >= 0 || distance < 8) {
-            const gravityX = directionToOriginX * effectiveGravity;
-            const gravityY = directionToOriginY * effectiveGravity;
+            // Normalizar dirección
+            const dist = Math.sqrt(directionToRestX * directionToRestX + directionToRestY * directionToRestY);
+            if (dist > 0.1) {
+                const gravityX = (directionToRestX / dist) * effectiveGravity;
+                const gravityY = (directionToRestY / dist) * effectiveGravity;
 
-            velocityX += gravityX;
-            velocityY += gravityY;
+                velocityX += gravityX;
+                velocityY += gravityY;
+            }
         }
 
         // Limitar velocidad máxima
@@ -1114,41 +1130,55 @@ function initLogoDrag() {
         currentX += velocityX;
         currentY += velocityY;
 
-        // Si está muy cerca del origen y la velocidad es baja, detener completamente sin rebote
+        // Si está muy cerca del reposo y la velocidad es baja, detener completamente sin rebote
         if (distance < 3 && speed < 0.4) {
-            currentX = 0;
-            currentY = 0;
+            currentX = RESTING_X;
+            currentY = RESTING_Y;
             velocityX = 0;
             velocityY = 0;
             cancelAnimationFrame(animationId);
             animationId = null;
             logo.style.transition = 'transform 0.6s ease-out';
-            applyTransform(0, 0);
+            applyTransform(RESTING_X, RESTING_Y, 0);
             return;
         }
 
-        // Si la velocidad es muy baja, regresar suavemente a la posición original
+        // Si la velocidad es muy baja, regresar suavemente a la posición de reposo
         if (Math.abs(velocityX) < 0.015 && Math.abs(velocityY) < 0.015) {
             if (distance > 0.8) {
                 // Regresar gradualmente con suavidad muy lenta, sin rebote
-                currentX *= (1 - RETURN_SPEED);
-                currentY *= (1 - RETURN_SPEED);
+                // Interpolación lineal hacia el objetivo
+                currentX += (RESTING_X - currentX) * RETURN_SPEED;
+                currentY += (RESTING_Y - currentY) * RETURN_SPEED;
             } else {
                 // Ya está muy cerca, detener completamente sin rebote
-                currentX = 0;
-                currentY = 0;
+                currentX = RESTING_X;
+                currentY = RESTING_Y;
                 velocityX = 0;
                 velocityY = 0;
                 cancelAnimationFrame(animationId);
                 animationId = null;
                 logo.style.transition = 'transform 0.6s ease-out';
-                applyTransform(0, 0);
+                applyTransform(RESTING_X, RESTING_Y, 0);
                 return;
             }
         }
 
+        // Calcular rotación basada en la velocidad horizontal
+        // Izquierda (vel < 0) -> Rotar derecha (positivo)
+        // Derecha (vel > 0) -> Rotar izquierda (negativo, menos grados)
+        let rotation = 0;
+        if (velocityX < 0) {
+            rotation = velocityX * -0.5; // Factor mayor para movimiento a la izquierda
+        } else {
+            rotation = velocityX * -0.2; // Factor menor para movimiento a la derecha
+        }
+
+        // Limitar rotación máxima
+        rotation = Math.max(-10, Math.min(15, rotation));
+
         // Aplicar transformación
-        applyTransform(currentX, currentY);
+        applyTransform(currentX, currentY, rotation);
 
         // Continuar animación
         animationId = requestAnimationFrame(animate);
@@ -1243,8 +1273,19 @@ function initLogoDrag() {
         lastY = coords.y;
         lastTime = now;
 
+        // Calcular rotación basada en la velocidad
+        let rotation = 0;
+        if (velocityX < 0) {
+            rotation = velocityX * -0.5;
+        } else {
+            rotation = velocityX * -0.2;
+        }
+
+        // Limitar rotación
+        rotation = Math.max(-15, Math.min(20, rotation));
+
         // Aplicar transform
-        applyTransform(currentX, currentY);
+        applyTransform(currentX, currentY, rotation);
 
         return false;
     }
@@ -1287,7 +1328,7 @@ function initLogoDrag() {
     // ============================================
     let initialAnimationId = null;
     let initialAnimationStartTime = null;
-    const INITIAL_ANIMATION_DURATION = 20000; // 20 segundos (15s infinito + 5s desaceleración)
+    const INITIAL_ANIMATION_DURATION = 25000; // 25 segundos (20s infinito + 5s desaceleración)
     const INFINITY_AMPLITUDE_X = 80; // Amplitud horizontal del infinito
     const INFINITY_AMPLITUDE_Y = 30; // Amplitud vertical del infinito
     const VERTICAL_AMPLITUDE = 15; // Amplitud del movimiento vertical adicional
@@ -1302,13 +1343,13 @@ function initLogoDrag() {
             const progress = elapsed / INITIAL_ANIMATION_DURATION;
 
             if (progress >= 1) {
-                // Animación terminada, regresar a posición original de forma muy suave y elegante
-                currentX = 0;
-                currentY = 0;
+                // Animación terminada, ir a posición de reposo (no al centro)
+                currentX = RESTING_X;
+                currentY = RESTING_Y;
                 velocityX = 0;
                 velocityY = 0;
                 logo.style.transition = 'transform 4.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
-                applyTransform(0, 0);
+                applyTransform(RESTING_X, RESTING_Y, 0);
                 logo.style.pointerEvents = 'auto'; // Rehabilitar interacción
                 initialAnimationId = null;
                 return;
@@ -1333,11 +1374,43 @@ function initLogoDrag() {
             // Movimiento vertical adicional (ligero)
             const verticalY = Math.sin(t * 1.5) * VERTICAL_AMPLITUDE;
 
-            // Aplicar factor de desaceleración al movimiento
+
+
+            // Calcular velocidad horizontal aproximada (derivada de sin(t))
+            // x = sin(t) * A -> v = cos(t) * A
+            const velocityFactor = Math.cos(t);
+
+            // Calcular rotación basada en la "velocidad"
+            let rotation = 0;
+            // La velocidad real depende de la amplitud y la velocidad del tiempo, pero usamos el factor direccional
+            if (velocityFactor < 0) {
+                // Moviéndose a la izquierda (cos(t) negativo en ciertos cuadrantes? No, x = sin(t). dx/dt = cos(t). 
+                // Si cos(t) < 0, x disminuye -> izquierda.
+                // Queremos rotar a la derecha (positivo)
+                rotation = velocityFactor * 5; // 5 grados max
+            } else {
+                // Moviéndose a la derecha
+                // Queremos rotar a la izquierda (negativo, menos grados)
+                rotation = velocityFactor * 2; // 2 grados max
+            }
+
+            // Invertir el signo porque velocityFactor ya tiene signo?
+            // Si v < 0 (izq), queremos rot > 0. v * -k -> pos.
+            // Si v > 0 (der), queremos rot < 0. v * -k -> neg.
+            // Entonces usamos un multiplicador negativo.
+
+            if (velocityFactor < 0) {
+                rotation = velocityFactor * -6.0; // Izquierda -> Derecha (más fuerte)
+            } else {
+                rotation = velocityFactor * -2.5; // Derecha -> Izquierda (más suave)
+            }
+
+            // Aplicar factor de desaceleración al movimiento y rotación
             const finalX = infinityX * decelerationFactor;
             const finalY = (infinityY + verticalY) * decelerationFactor;
+            const finalRotation = rotation * decelerationFactor;
 
-            applyTransform(finalX, finalY);
+            applyTransform(finalX, finalY, finalRotation);
 
             initialAnimationId = requestAnimationFrame(animateInfinity);
         }
@@ -1531,10 +1604,8 @@ function initFinalImageEffect() {
     const finalSection = document.getElementById('final-image-section');
     if (!finalSection) return;
 
-    const finalImage = finalSection.querySelector('img');
-    if (!finalImage) return;
-
-    let maxHeight = 0;
+    // Ya no dependemos de una imagen
+    let maxHeight = 350; // Altura fija para simular el espacio que ocupaba la imagen
     const minHeight = 50; // Altura inicial muy comprimida
     let scrollRaf = null;
     let resizeRaf = null;
@@ -1545,13 +1616,10 @@ function initFinalImageEffect() {
     let lastScrollY = -1;
 
     const updateHeight = () => {
-        if (!maxHeight) return;
-
         // Optimización: Usar valores en caché y window.scrollY
-        // Evita getBoundingClientRect() en cada frame que causa reflow forzado
         const currentScrollY = window.scrollY || window.pageYOffset;
 
-        // Si el scroll no ha cambiado, no hacer nada (aunque RAF ayuda, esto es doble seguridad)
+        // Si el scroll no ha cambiado, no hacer nada
         if (currentScrollY === lastScrollY) return;
         lastScrollY = currentScrollY;
 
@@ -1559,34 +1627,22 @@ function initFinalImageEffect() {
         const rectTop = sectionAbsoluteTop - currentScrollY;
 
         // Solo calcular si está cerca de ser visible o visible
-        // Un margen de seguridad de 100px
         if (rectTop > viewportHeight + 100) return;
 
         const availableHeight = viewportHeight - rectTop;
 
-        // Usar fastdom o simplemente escribir (el navegador optimiza si no leemos después)
         const targetHeight = Math.max(minHeight, Math.min(maxHeight, availableHeight));
 
-        // Usar transform scaleY podría ser más performante que height, pero height es necesario para el layout
-        // Sin embargo, como es el último elemento, height está bien si evitamos el reflow de lectura
         finalSection.style.height = `${targetHeight}px`;
     };
 
     const updateDimensions = () => {
-        if (!finalImage.naturalWidth || !finalImage.naturalHeight) return;
-
         // Actualizar caché de dimensiones
         viewportHeight = window.innerHeight || document.documentElement.clientHeight;
 
         // Calcular posición absoluta (top relativo al documento)
-        // Necesitamos sumar el scroll actual al top relativo al viewport
         const rect = finalSection.getBoundingClientRect();
         sectionAbsoluteTop = rect.top + window.scrollY;
-
-        const width = finalSection.clientWidth || window.innerWidth;
-
-        // Calcular altura natural basada en el aspect ratio
-        maxHeight = width * (finalImage.naturalHeight / finalImage.naturalWidth);
 
         // Forzar actualización inmediata
         lastScrollY = -1;
@@ -1611,20 +1667,13 @@ function initFinalImageEffect() {
         });
     };
 
-    if (finalImage.complete) {
-        updateDimensions();
-    } else {
-        finalImage.addEventListener('load', updateDimensions);
-    }
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleResize, { passive: true });
 
     // Ajuste inicial
     updateDimensions();
 
-    // Recalcular dimensiones periódicamente por si carga contenido dinámico arriba
-    // Esto es barato comparado con hacerlo en cada scroll
+    // Recalcular dimensiones periódicamente
     setInterval(updateDimensions, 2000);
 }
 
