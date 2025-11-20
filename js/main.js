@@ -872,7 +872,7 @@ function initFiltersAndWebGL() {
     });
     const applyQuantityJoint = (quantity) => {
         const prices = {
-            '1': 150,
+            '1': 200,
             '2': 280,
             '3': 380,
             '5': 500
@@ -1006,6 +1006,41 @@ function initFiltersAndWebGL() {
             if (qPillJointGL) qPillJointGL.updateSize();
         }, 50);
     };
+
+    // Función para recalcular todas las posiciones
+    const recalculatePositions = () => {
+        // Recalcular filtro
+        if (activeButton) {
+            updatePill(activeButton, false);
+        }
+        // Recalcular flor
+        if (activeQButtonFlor) {
+            updateQPillFlor(activeQButtonFlor, false);
+        }
+        // Recalcular joint
+        if (activeQButtonJoint) {
+            updateQPillJoint(activeQButtonJoint, false);
+        }
+    };
+
+    // Recalcular cuando las fuentes estén listas (importante para el ancho del texto)
+    document.fonts.ready.then(recalculatePositions);
+
+    // Recalcular cuando todo esté cargado
+    window.addEventListener('load', recalculatePositions);
+
+    // Recalcular en resize
+    window.addEventListener('resize', () => {
+        requestAnimationFrame(recalculatePositions);
+    });
+
+    // Recalcular periódicamente por si acaso (durante los primeros segundos)
+    let checkCount = 0;
+    const checkInterval = setInterval(() => {
+        recalculatePositions();
+        checkCount++;
+        if (checkCount > 10) clearInterval(checkInterval);
+    }, 500);
 }
 
 // Logo Drag Interaction
