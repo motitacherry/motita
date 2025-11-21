@@ -1070,9 +1070,70 @@ function initLogoDrag() {
     const RETURN_SPEED = 0.012; // Velocidad de regreso a posición original - solo afecta fase final
     const VELOCITY_MULTIPLIER = 1.3; // Multiplicador de velocidad al soltar - reducido para menos recorrido
 
-    // Posición de reposo (offset del centro)
-    const RESTING_X = -80; // Más a la izquierda
-    const RESTING_Y = 15;  // Más arriba
+    // Posición de reposo (dinámica, centrada entre A y N de "LA NAVE")
+    let RESTING_X = -80; // Valor inicial, se actualizará dinámicamente
+    let RESTING_Y = 15;  // Valor inicial, se actualizará dinámicamente
+
+    // Función para calcular la posición entre la A y la N
+    function calculateRestingPosition() {
+        const laNaveText = document.getElementById('la-nave-text');
+        const logoContainer = document.getElementById('logo-container');
+
+        if (!laNaveText || !logoContainer) return;
+
+        // Obtener las dimensiones y posiciones
+        const textRect = laNaveText.getBoundingClientRect();
+        const containerRect = logoContainer.getBoundingClientRect();
+
+        // "LA NAVE" tiene 7 caracteres (incluyendo espacio)
+        // L=0, A=1, (espacio)=2, N=3, A=4, V=5, E=6
+        // Queremos centrar entre A (posición 1) y N (posición 3)
+
+        const textWidth = textRect.width;
+        const charWidth = textWidth / 7; // Ancho aproximado por carácter
+
+        // Posición de la A en "LA" (posición 1) y N en "NAVE" (posición 3)
+        const posA = charWidth * 1.5; // Centro de la A
+        const posN = charWidth * 3.5; // Centro de la N
+        const centerBetweenAN = (posA + posN) / 2; // Centro entre A y N
+
+        // Calcular offset desde el centro del texto
+        const textCenter = textWidth / 2;
+        const offsetFromCenter = centerBetweenAN - textCenter;
+
+        // Convertir a offset relativo al container del logo
+        const containerCenterX = containerRect.left + containerRect.width / 2;
+        const textCenterX = textRect.left + textRect.width / 2;
+        const textCenterY = textRect.top + textRect.height / 2;
+        const containerCenterY = containerRect.top + containerRect.height / 2;
+
+        RESTING_X = (textCenterX - containerCenterX) + offsetFromCenter;
+        RESTING_Y = textCenterY - containerCenterY;
+
+        // Ajuste adicional para móvil
+        const isMobile = window.innerWidth <= 768;
+        if (isMobile) {
+            RESTING_X -= 15; // Un poco más a la izquierda en móvil
+            RESTING_Y += 10; // Un poco más abajo en móvil
+        }
+    }
+
+    // Calcular posición inicial
+    calculateRestingPosition();
+
+    // Recalcular en resize
+    window.addEventListener('resize', () => {
+        requestAnimationFrame(calculateRestingPosition);
+    });
+
+    // Recalcular al cargar fonts y cuando el texto cambie de tamaño
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(calculateRestingPosition);
+    }
+
+    // Recalcular después de un delay para asegurar que el texto esté renderizado
+    setTimeout(calculateRestingPosition, 500);
+    setTimeout(calculateRestingPosition, 1500);
 
     // Prevenir arrastre nativo
     logo.setAttribute('draggable', 'false');
